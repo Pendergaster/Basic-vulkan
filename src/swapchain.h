@@ -120,6 +120,7 @@ SwapChain swapchain_create(const VkPhysicalDevice device, const VkSurfaceKHR sur
 	// default image rotation
 	createInfo.preTransform = supportDetails.capabilities.currentTransform;
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	// dont care about color of pixels that are obscured
 	createInfo.clipped = VK_TRUE;
 
 	return swapchain;
