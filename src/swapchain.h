@@ -10,6 +10,7 @@
 #include "window.h"
 #include "queueIndexes.h"
 #include "cmath.h"
+#include "imageview.h"
 
 typedef struct SwapchainSupportDetails {
 	VkSurfaceCapabilitiesKHR	capabilities;
@@ -20,7 +21,12 @@ typedef struct SwapchainSupportDetails {
 } SwapchainSupportDetails;
 
 typedef struct SwapChain {
-
+	VkSwapchainKHR	swapchain;
+	u32				numImages;
+	VkImage*		swapchainImages;
+	VkFormat        format;
+	VkExtent2D		extent;
+	ImageView*		views;
 } SwapChain ;
 
 
@@ -32,23 +38,30 @@ static SwapchainSupportDetails swapchain_get_support_details(const VkPhysicalDev
 	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details.numFormats, NULL);
 	//query format details
 	if (details.numFormats != 0) {
-		details.formats = (VkSurfaceFormatKHR*)malloc(details.numFormats * sizeof(VkSurfaceFormatKHR));
+		details.formats = (VkSurfaceFormatKHR*)malloc(details.numFormats * sizeof details.formats);
 		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details.numFormats, details.formats);
 	}
 
 	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details.numPresentationModes, NULL);
 	// query present modes
 	if (details.numPresentationModes != 0) {
-		details.presentModes = (VkPresentModeKHR*)malloc(details.numFormats * sizeof(VkPresentModeKHR));
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details.numPresentationModes, details.presentModes);
+		details.presentModes =
+			(VkPresentModeKHR*)malloc(details.numPresentationModes * sizeof details.presentModes);
+
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details.numPresentationModes,
+				details.presentModes);
 	}
 
 	return details;
 }
 
 static void swapchain_dispose_support_details(SwapchainSupportDetails* details) {
-	free(details->formats);
-	free(details->presentModes);
+	if(details->formats) {
+		free(details->formats);
+	}
+	if(details->presentModes) {
+		free(details->presentModes);
+	}
 	memset(details,0,sizeof(SwapchainSupportDetails));
 }
 
@@ -79,19 +92,27 @@ static VkExtent2D _swapchain_choose_extent(const VkSurfaceCapabilitiesKHR* capab
 		return capabilities->currentExtent;
 	}
 	VkExtent2D actualExtent = {.width = SCREENWIDTH, .height = SCREENHEIGHT};
-	actualExtent.width = maxui(capabilities->minImageExtent.width,
-			minui(capabilities->maxImageExtent.width,actualExtent.width));
-	actualExtent.height = maxui(capabilities->minImageExtent.height,
-			minui(capabilities->maxImageExtent.height,actualExtent.height));
+
+	// clamp value between max and min values
+	actualExtent.width = clamp_u32(actualExtent.width,
+			capabilities->minImageExtent.width,capabilities->maxImageExtent.width);
+
+	actualExtent.height = clamp_u32(actualExtent.height,
+			capabilities->minImageExtent.height,capabilities->maxImageExtent.height);
+
 	return actualExtent;
 }
 
-SwapChain swapchain_create(const VkPhysicalDevice device, const VkSurfaceKHR surface,const QueueFamilyIndices indexes) {
-	SwapChain swapchain = {};
-	SwapchainSupportDetails supportDetails = swapchain_get_support_details(device,surface);
+
+static void swapchain_init(SwapChain* swapchain,const VkPhysicalDevice physicalDevice,
+		const VkSurfaceKHR surface,const QueueFamilyIndices indexes,const VkDevice logicalDevice) {
+
+	SwapchainSupportDetails supportDetails = swapchain_get_support_details(physicalDevice,surface);
+
 	VkSurfaceFormatKHR surfaceFormat = _swapchain_choose_format(supportDetails.formats,supportDetails.numFormats);
 	VkPresentModeKHR presentMode = _swapchain_choose_present_mode(supportDetails.presentModes,supportDetails.numPresentationModes);
 	VkExtent2D extent = _swapchain_choose_extent(&supportDetails.capabilities);
+
 	// create one more image than required
 	u32 numImages = supportDetails.capabilities.minImageCount + 1;
 	// check that we dont exceed the maxinum amount of images
@@ -99,6 +120,9 @@ SwapChain swapchain_create(const VkPhysicalDevice device, const VkSurfaceKHR sur
 		numImages = supportDetails.capabilities.maxImageCount;
 	}
 	VkSwapchainCreateInfoKHR createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = surface;
+
 	createInfo.minImageCount = numImages;
 	createInfo.imageFormat = surfaceFormat.format;
 	createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -122,7 +146,35 @@ SwapChain swapchain_create(const VkPhysicalDevice device, const VkSurfaceKHR sur
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	// dont care about color of pixels that are obscured
 	createInfo.clipped = VK_TRUE;
+	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	return swapchain;
+	if(vkCreateSwapchainKHR(logicalDevice,&createInfo,NULL,&swapchain->swapchain) != VK_SUCCESS) {
+		ABORT("Failed to create logical device");
+	}
+	swapchain_dispose_support_details(&supportDetails);
+
+	// now get image handles, implementation is allowed to create more images than we requested
+	// and dave extent and format
+	vkGetSwapchainImagesKHR(logicalDevice,swapchain->swapchain,&swapchain->numImages,NULL);
+	swapchain->swapchainImages = (VkImage*)malloc(swapchain->numImages * sizeof *swapchain->swapchainImages);
+	vkGetSwapchainImagesKHR(logicalDevice, swapchain->swapchain, &swapchain->numImages, swapchain->swapchainImages);
+	swapchain->format = surfaceFormat.format;
+	swapchain->extent = extent;
+	swapchain->views = (ImageView*)malloc(swapchain->numImages * sizeof *swapchain->views);
+	// create each image its view
+	swapchain->numImages = swapchain->numImages;
+	for(u32 i = 0; i < swapchain->numImages; i++) {
+		swapchain->views[i] = imageview_create(swapchain->swapchainImages[i],swapchain->format,logicalDevice);
+	}
+}
+
+static void swapchain_dispose(SwapChain* chain,const VkDevice device) {
+	for(u32 i = 0; i < chain->numImages;i++) {
+		imageview_dispose(chain->views[i],device);
+	}
+	vkDestroySwapchainKHR(device,chain->swapchain,NULL);
+	free(chain->swapchainImages);
+	memset(chain,0,sizeof *chain);
+	LOG("Disposed swapchain");
 }
 #endif

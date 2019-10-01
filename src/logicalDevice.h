@@ -9,11 +9,15 @@
 #include "validationLayers.h"
 #include "physicalDevice.h"
 #include "vulkanExtensions.h"
+#include "swapchain.h"
+#include "pipeline.h"
+
 // Store all needed data about Logical device
 typedef struct LogicalDevice {
 	VkDevice	device;
 	VkQueue		graphicsQueue;
 	VkQueue		presentQueue;
+	SwapChain	swapchain;
 } LogicalDevice;
 
 static void inline _set_queues(LogicalDevice* device,const QueueFamilyIndices indices) {
@@ -21,7 +25,7 @@ static void inline _set_queues(LogicalDevice* device,const QueueFamilyIndices in
 	vkGetDeviceQueue(device->device, indices.presentFamily, 0, &device->presentQueue);
 }
 
-static void init_logical_device(const PhysicalDevice* physicalDevice, LogicalDevice* device) {
+static void logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device) {
 	// if present and graphics queues are not same we need to create two separate
 	VkDeviceQueueCreateInfo queueCreateInfos[(sizeof(QueueFamilyIndices)) / (sizeof(u32))] = {};
 	// get unique indexes
@@ -76,9 +80,11 @@ static void init_logical_device(const PhysicalDevice* physicalDevice, LogicalDev
 	_set_queues(device,physicalDevice->queues);
 }
 
-static void inline dispose_logicalDevice(LogicalDevice* device) {
+static void inline logicalDevice_dispose(LogicalDevice* device) {
+	swapchain_dispose(&device->swapchain,device->device);
 	// device queues are automaticly disposed when device is disposed
 	vkDestroyDevice(device->device, NULL);
+	LOG("Disposed logicaldevice");
 }
 
 #endif //LOGICALDEVICE_H

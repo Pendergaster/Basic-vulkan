@@ -1,6 +1,6 @@
 /************************************************************
-* Check license.txt in project root for license information *
-*********************************************************** */
+ * Check license.txt in project root for license information *
+ *********************************************************** */
 
 #ifndef CMATH_H
 #define CMATH_H
@@ -27,20 +27,29 @@ static inline float maxf(float l, float r) {
 	return (l > r ? l : r);
 }
 
-static inline i32 mini(i32 l, i32 r) {
+static inline i32 min_i32(i32 l, i32 r) {
 	return (l < r ? l : r);
 }
 
-static inline i32 maxi(i32 l, i32 r) {
+static inline i32 max_i32(i32 l, i32 r) {
 	return (l > r ? l : r);
 }
 
-static inline i32 minui(u32 l, u32 r) {
+static inline i32 min_u32(u32 l, u32 r) {
 	return (l < r ? l : r);
 }
 
-static inline i32 maxui(u32 l, u32 r) {
+static inline i32 max_u32(u32 l, u32 r) {
 	return (l > r ? l : r);
+}
+
+static inline u32 clamp_u32 (u32 val, u32 min, u32 max) {
+	if (val < min) {
+		return min;
+	} else if (val > max){
+		return max;
+	}
+	return val;
 }
 
 typedef struct vec2 {

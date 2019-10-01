@@ -32,7 +32,7 @@ static HANDLE consoleHandle = NULL;
 #define CONSOLE_COLOR_GREEN FOREGROUND_GREEN
 #define CONSOLE_COLOR_RED FOREGROUND_RED
 
-static void init_colored_print() {
+static void colored_print_init() {
 	consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 	if(INVALID_HANDLE_VALUE == consoleHandle) {
 		consoleHandle = NULL;

@@ -15,7 +15,7 @@ SET DEBUG_PATH= ./build/debug
 
 IF /I "%1"=="build" (
 		cd %DEBUG_PATH%
-		
+
 		clang %C_VERSION% %SOURCE_FILES% %INCLUDE_FOLDERS% %DEBUG_DEFINITIONS% -gcodeview -O0 -fstrict-aliasing -fexceptions -g -Wall -Wextra -Wstrict-aliasing  %WARNING_IGNORES% %LIBS% -o motor.exe
 		cd ../..
 		)
@@ -41,6 +41,12 @@ IF /I "%1"=="build_run" (
 		cd ../
 
 		DebugBin\motor.exe
+		)
+
+
+IF /I "%1"=="build_shaders" (
+		C:/VulkanSDK/1.1.114.0/Bin32/glslc.exe shaders/basic_shader.vert -o shaders/basic_shader_vert.spv
+		C:/VulkanSDK/1.1.114.0/Bin32/glslc.exe shaders/basic_shader.frag -o shaders/basic_shader_frag.spv
 		)
 
 ENDLOCAL

@@ -29,7 +29,7 @@ static void error_callback(int e, const char *d) {
 	ABORT("GLFW error %d: %s\n", e, d);
 }
 
-void init_window() {
+void window_init() {
 	glfwInit();
 	// start glfw with out opengl context
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -43,13 +43,13 @@ void init_window() {
 	ASSERT_MESSAGE(g_window,"FAILED TO INIT WINDOW"); // failed to create window
 }
 
-void create_window_surface(const VkInstance instance,VkSurfaceKHR* surface) {
+void window_create_surface(const VkInstance instance,VkSurfaceKHR* surface) {
 	if (glfwCreateWindowSurface(instance, g_window, NULL, surface) != VK_SUCCESS) {
 		ABORT("failed to create window surface");
     }
 }
 
-inline const char** get_required_window_extensions(u32* count) {
+inline const char** window_get_required_extensions(u32* count) {
 	return glfwGetRequiredInstanceExtensions(count);
 }
 

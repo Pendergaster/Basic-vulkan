@@ -17,13 +17,12 @@ typedef struct VulkanContext {
 	VkInstance					instance;
 	VkDebugUtilsMessengerEXT	debugMessenger;
 	PhysicalDevice				physicalDevice;
-	LogicalDevice				logicalDevice;
 	VkSurfaceKHR				surface;
 } VulkanContext;
 
 
 
-static void init_vulkanContext(VulkanContext* context) {
+static void vulkancontext_init(VulkanContext* context) {
 
 	// if validation layer are enabled check that they are supported
 	if(enableValidationLayers && !check_validation_layer_support()) {
@@ -45,7 +44,7 @@ static void init_vulkanContext(VulkanContext* context) {
 	createInfo.pApplicationInfo = &appInfo;
 	// get GLFWs required extensions
 	u32 numExtensions = 0;
-	const char** extensions = get_required_extensions(&numExtensions);
+	const char** extensions = extensions_get_required(&numExtensions);
 	createInfo.ppEnabledExtensionNames =  extensions;
 	createInfo.enabledExtensionCount = numExtensions;
 	// number of enabled validation layers
@@ -87,14 +86,16 @@ static void init_vulkanContext(VulkanContext* context) {
 }
 
 static void vulkancontext_dispose(VulkanContext* context) {
-	dispose_logicalDevice(&context->logicalDevice);
 
 	vkDestroySurfaceKHR(context->instance, context->surface, NULL);
+	LOG("Surface disposed");
 	if(enableValidationLayers) {
 		dispose_debug_messenger(context->instance,context->debugMessenger);
+		LOG("Debug messenger disposed");
 	}
 
 	vkDestroyInstance(context->instance, NULL);
+	LOG("Instance disposed");
 }
 
 #endif //VULKAN_CONTEXT

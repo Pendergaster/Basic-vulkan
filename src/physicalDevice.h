@@ -68,7 +68,7 @@ static u8 _is_device_suitable(const VkPhysicalDevice device,const VkSurfaceKHR s
 }
 
 
-static void pick_physical_device(const VkInstance instance,PhysicalDevice* device,const VkSurfaceKHR surface) {
+static void physical_device_pick(const VkInstance instance,PhysicalDevice* device,const VkSurfaceKHR surface) {
 	u32 deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, NULL);
 

@@ -8,15 +8,17 @@
 #include "validationLayers.h"
 #include "physicalDevice.h"
 #include "logicalDevice.h"
+#include "swapchain.h"
 
-void cleanup(VulkanContext* context);
-void init(VulkanContext* context);
+void init(VulkanContext* context,LogicalDevice* device);
+void cleanup(VulkanContext* context,LogicalDevice* device);
 
 int main(const int argc,char **argv)
 {
 	(void)argc;(void)argv;
 	VulkanContext context = {};
-	init(&context);
+	LogicalDevice logicalDevice;
+	init(&context,&logicalDevice);
 
 	// main loop
 	while (!glfwWindowShouldClose(g_window)) {
@@ -24,32 +26,36 @@ int main(const int argc,char **argv)
 
 	}
 
-	cleanup(&context);
+	cleanup(&context,&logicalDevice);
 	LOG("All disposed");
 	return 0;
 }
 
-void init(VulkanContext* context) {
-	init_colored_print();
-	init_window();
+void init(VulkanContext* context,LogicalDevice* device) {
+	colored_print_init();
+	window_init();
 	LOG("Window initialized");
-	init_vulkanContext(context);
+	vulkancontext_init(context);
 	if (enableValidationLayers) {
 		init_debug_messenger(context->instance,&context->debugMessenger);
 		LOG("Debug messenger initialized");
 
 	}
 	LOG("Vulkan context initialized");
-	create_window_surface(context->instance,&context->surface);
+	window_create_surface(context->instance,&context->surface);
 	LOG("Window surface created");
-	pick_physical_device(context->instance,&context->physicalDevice,context->surface);
+	physical_device_pick(context->instance,&context->physicalDevice,context->surface);
 	LOG("Physical device picked");
-	init_logical_device(&context->physicalDevice,&context->logicalDevice);
+	logicaldevice_init(&context->physicalDevice,device);
 	LOG("Logical device created");
+	swapchain_init(&device->swapchain,context->physicalDevice.physicalDevice,
+			context->surface,context->physicalDevice.queues,device->device);
+	LOG("Swapchain created");
 }
 
 // free memory, context and other resources
-void cleanup(VulkanContext* context) {
+void cleanup(VulkanContext* context, LogicalDevice* device) {
+	logicalDevice_dispose(device);
 	vulkancontext_dispose(context);
 	dispose_window();
 }
