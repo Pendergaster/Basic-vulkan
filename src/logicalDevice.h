@@ -11,6 +11,7 @@
 #include "vulkanExtensions.h"
 #include "swapchain.h"
 #include "pipeline.h"
+#include "renderpass.h"
 
 // Store all needed data about Logical device
 typedef struct LogicalDevice {
@@ -18,6 +19,8 @@ typedef struct LogicalDevice {
 	VkQueue		graphicsQueue;
 	VkQueue		presentQueue;
 	SwapChain	swapchain;
+	Pipeline	pipeline;
+	RenderPass	renderPass;
 } LogicalDevice;
 
 static void inline _set_queues(LogicalDevice* device,const QueueFamilyIndices indices) {
@@ -81,6 +84,7 @@ static void logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevi
 }
 
 static void inline logicalDevice_dispose(LogicalDevice* device) {
+	pipeline_dispose(&device->pipeline,device->device);
 	swapchain_dispose(&device->swapchain,device->device);
 	// device queues are automaticly disposed when device is disposed
 	vkDestroyDevice(device->device, NULL);
@@ -88,5 +92,3 @@ static void inline logicalDevice_dispose(LogicalDevice* device) {
 }
 
 #endif //LOGICALDEVICE_H
-
-

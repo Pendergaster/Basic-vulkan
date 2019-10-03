@@ -9,6 +9,8 @@
 #include "physicalDevice.h"
 #include "logicalDevice.h"
 #include "swapchain.h"
+#include "pipeline.h"
+#include "renderpass.h"
 
 void init(VulkanContext* context,LogicalDevice* device);
 void cleanup(VulkanContext* context,LogicalDevice* device);
@@ -51,6 +53,10 @@ void init(VulkanContext* context,LogicalDevice* device) {
 	swapchain_init(&device->swapchain,context->physicalDevice.physicalDevice,
 			context->surface,context->physicalDevice.queues,device->device);
 	LOG("Swapchain created");
+	renderpass_init(&device->renderPass,&device->swapchain);
+	LOG("Renderpass inited");
+	pipeline_init(&device->pipeline,device->device,device->swapchain.extent);
+	LOG("Pipeline created");
 }
 
 // free memory, context and other resources
