@@ -58,7 +58,7 @@ void init(VulkanContext* context,LogicalDevice* device) {
 	pipeline_init(&device->pipeline,device->device,device->swapchain.extent);
 	LOG("Pipeline created");
 }
-
+		int ks;		int b;
 // free memory, context and other resources
 void cleanup(VulkanContext* context, LogicalDevice* device) {
 	logicalDevice_dispose(device);
