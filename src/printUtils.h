@@ -33,13 +33,13 @@ static HANDLE consoleHandle = NULL;
 #define CONSOLE_COLOR_RED FOREGROUND_RED
 
 static void colored_print_init() {
-	consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-	if(INVALID_HANDLE_VALUE == consoleHandle) {
-		consoleHandle = NULL;
-		LOG("failed to load console handle");
-	} else {
-		LOG_COLOR(CONSOLE_COLOR_GREEN,"Colored print initialized");
-	}
+    consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    if(INVALID_HANDLE_VALUE == consoleHandle) {
+        consoleHandle = NULL;
+        LOG("failed to load console handle");
+    } else {
+        LOG_COLOR(CONSOLE_COLOR_GREEN,"Colored print initialized");
+    }
 }
 
 
@@ -48,12 +48,12 @@ static void colored_print_init() {
 
 #define CONSOLE_COLOR_BLUE  0
 #define CONSOLE_COLOR_GREEN 0
-#define CONSOLE_COLOR_RED	0
+#define CONSOLE_COLOR_RED   0
 
 
 static void* consoleHandle = NULL;
 static void init_colored_print() {
-	LOG("TODO colored printing");
+    LOG("TODO colored printing");
 }
 
 
@@ -64,110 +64,110 @@ static void init_colored_print() {
 static void _LOG_COLOR (u32 color,const char* file,const u32 row,FILE* stream,char* format,...) {
 
 #if defined(WINDOWS_PLATFORM)
-	CONSOLE_SCREEN_BUFFER_INFO consoleInfo = {};
-	WORD saved_attributes = 0;
-	// only do colored print if handle is initialized
-	if(NULL != consoleHandle) {
-		GetConsoleScreenBufferInfo(consoleHandle, &consoleInfo);
-		saved_attributes = consoleInfo.wAttributes;
+    CONSOLE_SCREEN_BUFFER_INFO consoleInfo = {};
+    WORD saved_attributes = 0;
+    // only do colored print if handle is initialized
+    if(NULL != consoleHandle) {
+        GetConsoleScreenBufferInfo(consoleHandle, &consoleInfo);
+        saved_attributes = consoleInfo.wAttributes;
 
-		SetConsoleTextAttribute(consoleHandle, color);
-	}
+        SetConsoleTextAttribute(consoleHandle, color);
+    }
 
 #endif
-	va_list args;
-	va_start (args, format);
-	fprintf(stream,LOG_STR);
-	vfprintf (stream,format, args);
-	fprintf(stream," in file : %s:%d \n", file, row);
-	fflush(stream);
+    va_list args;
+    va_start (args, format);
+    fprintf(stream,LOG_STR);
+    vfprintf (stream,format, args);
+    fprintf(stream," in file : %s:%d \n", file, row);
+    fflush(stream);
 
-	va_end (args);
+    va_end (args);
 
 #if defined(WINDOWS_PLATFORM)
-	if(NULL != consoleHandle) {
-		SetConsoleTextAttribute(consoleHandle, saved_attributes);
-	}
+    if(NULL != consoleHandle) {
+        SetConsoleTextAttribute(consoleHandle, saved_attributes);
+    }
 #endif
 }
 
 static void _ASSERT_MESSAGE(u8 condition,const char* file,const u32 row,char* format,...) {
-	if(!condition) {
+    if(!condition) {
 #if defined(WINDOWS_PLATFORM)
-		// save last state
-		CONSOLE_SCREEN_BUFFER_INFO consoleInfo = {};
-		WORD saved_attributes = 0;
-		// only do colored print if handle is initialized
-		if(NULL != consoleHandle) {
-			GetConsoleScreenBufferInfo(consoleHandle, &consoleInfo);
-			saved_attributes = consoleInfo.wAttributes;
+        // save last state
+        CONSOLE_SCREEN_BUFFER_INFO consoleInfo = {};
+        WORD saved_attributes = 0;
+        // only do colored print if handle is initialized
+        if(NULL != consoleHandle) {
+            GetConsoleScreenBufferInfo(consoleHandle, &consoleInfo);
+            saved_attributes = consoleInfo.wAttributes;
 
-			SetConsoleTextAttribute(consoleHandle, CONSOLE_COLOR_RED);
-		}
+            SetConsoleTextAttribute(consoleHandle, CONSOLE_COLOR_RED);
+        }
 #endif
 
-		va_list args;
-		va_start (args, format);
-		fprintf(stderr,"ASSERTION FAILED: ");
-		vfprintf (stderr,format, args);
-		fprintf(stderr," in file : %s:%d \n", file, row);
-		fflush(stderr);
+        va_list args;
+        va_start (args, format);
+        fprintf(stderr,"ASSERTION FAILED: ");
+        vfprintf (stderr,format, args);
+        fprintf(stderr," in file : %s:%d \n", file, row);
+        fflush(stderr);
 
-		va_end (args);
-		// set state back
+        va_end (args);
+        // set state back
 
 #if defined(WINDOWS_PLATFORM)
-		if(NULL != consoleHandle) {
-			SetConsoleTextAttribute(consoleHandle, saved_attributes);
-		}
+        if(NULL != consoleHandle) {
+            SetConsoleTextAttribute(consoleHandle, saved_attributes);
+        }
 #endif
-		_Exit(1);
-	}
+        _Exit(1);
+    }
 }
 
 static void _ABORT(const char* file,const u32 row,char* format,...) {
 #if defined(WINDOWS_PLATFORM)
-	// save last state
-	CONSOLE_SCREEN_BUFFER_INFO consoleInfo = {};
-	WORD saved_attributes = 0;
-	// only do colored print if handle is initialized
-	if(NULL != consoleHandle) {
-		GetConsoleScreenBufferInfo(consoleHandle, &consoleInfo);
-		saved_attributes = consoleInfo.wAttributes;
+    // save last state
+    CONSOLE_SCREEN_BUFFER_INFO consoleInfo = {};
+    WORD saved_attributes = 0;
+    // only do colored print if handle is initialized
+    if(NULL != consoleHandle) {
+        GetConsoleScreenBufferInfo(consoleHandle, &consoleInfo);
+        saved_attributes = consoleInfo.wAttributes;
 
-		SetConsoleTextAttribute(consoleHandle, CONSOLE_COLOR_RED);
-	}
+        SetConsoleTextAttribute(consoleHandle, CONSOLE_COLOR_RED);
+    }
 #endif
 
-	va_list args;
-	va_start (args, format);
-	fprintf(stderr,"ERROR OCCURED: ");
-	vfprintf (stderr,format, args);
-	fprintf(stderr," in file : %s:%d \n", file, row);
-	fflush(stderr);
+    va_list args;
+    va_start (args, format);
+    fprintf(stderr,"ERROR OCCURED: ");
+    vfprintf (stderr,format, args);
+    fprintf(stderr," in file : %s:%d \n", file, row);
+    fflush(stderr);
 
-	va_end (args);
-	// set state back
+    va_end (args);
+    // set state back
 
 #if defined(WINDOWS_PLATFORM)
-	if(NULL != consoleHandle) {
-		SetConsoleTextAttribute(consoleHandle, saved_attributes);
-	}
+    if(NULL != consoleHandle) {
+        SetConsoleTextAttribute(consoleHandle, saved_attributes);
+    }
 #endif
-	_Exit(1);
+    _Exit(1);
 }
 
 
 static void _LOG(const char* file,const u32 row,FILE* stream,char* format,...) {
 
-	va_list args;
-	va_start (args, format);
-	fprintf(stream,LOG_STR);
-	vfprintf (stream,format, args);
-	fprintf(stream," in file : %s:%d \n", file, row);
-	fflush(stream);
+    va_list args;
+    va_start (args, format);
+    fprintf(stream,LOG_STR);
+    vfprintf (stream,format, args);
+    fprintf(stream," in file : %s:%d \n", file, row);
+    fflush(stream);
 
-	va_end (args);
+    va_end (args);
 }
 
 

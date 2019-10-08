@@ -10,14 +10,14 @@
 #include <stdio.h>
 #include <assert.h>
 
-typedef uint64_t	u64;
-typedef int64_t		i64;
-typedef uint32_t	u32;
-typedef int32_t		i32;
-typedef uint16_t	u16;
-typedef int16_t		i16;
-typedef uint8_t		u8;
-typedef int8_t		i8;
+typedef uint64_t    u64;
+typedef int64_t     i64;
+typedef uint32_t    u32;
+typedef int32_t     i32;
+typedef uint16_t    u16;
+typedef int16_t     i16;
+typedef uint8_t     u8;
+typedef int8_t      i8;
 
 static const u16 numeric_max_u16 = 0xFFFF;
 static const u32 numeric_max_u32 = 0xFFFFFFFF;
