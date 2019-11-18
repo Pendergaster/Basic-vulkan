@@ -11,12 +11,15 @@
 
 typedef struct Pipeline {
     // Uniforms
-    VkPipelineLayout pipelineLayout;
+    VkPipelineLayout    pipelineLayout;
+    // How pipeline works
+    VkPipeline          graphicsPipeline;
 } Pipeline;
 
-VkShaderModule shadermodule_create(const u8* src,const size_t size, const VkDevice device) {
-    VkShaderModule ret = 0;
+VkShaderModule
+shadermodule_create(const u8* src,const size_t size, const VkDevice device) {
 
+    VkShaderModule ret = 0;
     VkShaderModuleCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = size;
@@ -29,7 +32,9 @@ VkShaderModule shadermodule_create(const u8* src,const size_t size, const VkDevi
     return ret;
 }
 
-static void pipeline_init(Pipeline* pipeline, const VkDevice device,const VkExtent2D drawExtent) {
+static void
+pipeline_init(Pipeline* pipeline, const VkDevice device,const VkExtent2D drawExtent,const VkRenderPass renderPass) {
+
     size_t vertSize = 0;
     u8* vert_shader = load_binary_file("shaders/basic_shader_vert.spv",&vertSize);
     size_t fragSize = 0;
@@ -131,7 +136,7 @@ static void pipeline_init(Pipeline* pipeline, const VkDevice device,const VkExte
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
 
-    // Here uniforms are defined
+    // Create pipeline layout, Here uniforms are defined
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 0; // Optional
@@ -143,6 +148,40 @@ static void pipeline_init(Pipeline* pipeline, const VkDevice device,const VkExte
         ABORT("Failed to create pipeline layout");
     }
 
+    // Descripes how color blending works
+    VkPipelineColorBlendStateCreateInfo colorBlending = {};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.logicOpEnable = VK_FALSE;
+    colorBlending.logicOp = VK_LOGIC_OP_COPY;
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
+
+    //Create graphics pipeline
+    VkGraphicsPipelineCreateInfo pipelineInfo = {};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = NULL; // Optional
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = NULL; // Optional
+
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+    pipelineInfo.basePipelineIndex = -1; // Optional
+
+    pipelineInfo.layout = pipeline->pipelineLayout;
+    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.subpass = 0;
+
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pipeline->graphicsPipeline) != VK_SUCCESS) {
+        ABORT("failed to create graphics pipeline!");
+    }
+
     // Clean things up
     vkDestroyShaderModule(device, vertMod, NULL);
     vkDestroyShaderModule(device, fragMod, NULL);
@@ -150,9 +189,12 @@ static void pipeline_init(Pipeline* pipeline, const VkDevice device,const VkExte
     free(frag_shader);
 }
 
-static void pipeline_dispose(Pipeline* pipeline, const VkDevice device) {
+static void
+pipeline_dispose(Pipeline* pipeline, const VkDevice device) {
+
+    vkDestroyPipeline(device, pipeline->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(device, pipeline->pipelineLayout, NULL);
-    memset(pipeline,0,sizeof *pipeline);
+    memset(pipeline, 0, sizeof *pipeline);
 }
 
 #endif /* PIPELINE_H */

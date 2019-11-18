@@ -26,7 +26,7 @@ typedef struct SwapChain {
     VkImage*        swapchainImages;
     VkFormat        format;
     VkExtent2D      extent;
-    ImageView*      views;
+    VkImageView*    views;
 } SwapChain ;
 
 
@@ -154,13 +154,13 @@ static void swapchain_init(SwapChain* swapchain,const VkPhysicalDevice physicalD
     swapchain_dispose_support_details(&supportDetails);
 
     // now get image handles, implementation is allowed to create more images than we requested
-    // and dave extent and format
+    // and set extent and format
     vkGetSwapchainImagesKHR(logicalDevice,swapchain->swapchain,&swapchain->numImages,NULL);
     swapchain->swapchainImages = (VkImage*)malloc(swapchain->numImages * sizeof *swapchain->swapchainImages);
     vkGetSwapchainImagesKHR(logicalDevice, swapchain->swapchain, &swapchain->numImages, swapchain->swapchainImages);
     swapchain->format = surfaceFormat.format;
     swapchain->extent = extent;
-    swapchain->views = (ImageView*)malloc(swapchain->numImages * sizeof *swapchain->views);
+    swapchain->views = (VkImageView*)malloc(swapchain->numImages * sizeof *swapchain->views);
     // create each image its view
     swapchain->numImages = swapchain->numImages;
     for(u32 i = 0; i < swapchain->numImages; i++) {

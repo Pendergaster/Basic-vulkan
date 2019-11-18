@@ -1,6 +1,6 @@
 /************************************************************
-* Check license.txt in project root for license information *
-*********************************************************** */
+ * Check license.txt in project root for license information *
+ *********************************************************** */
 
 #ifndef PHYSICALDEVICE_H
 #define PHYSICALDEVICE_H
@@ -10,9 +10,14 @@
 #include "vulkanExtensions.h"
 #include "swapchain.h"
 
+// Store all needed data about physical device
+typedef struct PhysicalDevice {
+    VkPhysicalDevice            physicalDevice;
+    QueueFamilyIndices          queues;
+} PhysicalDevice;
 
-
-static u8 _check_device_extension_support(VkPhysicalDevice device) {
+static u8
+_check_device_extension_support(VkPhysicalDevice device) {
     // query avaivable extensions and compare to required ones
     u32 extensionCount;
     vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, NULL);
@@ -40,7 +45,8 @@ static u8 _check_device_extension_support(VkPhysicalDevice device) {
     return 1;
 }
 
-static u8 _is_device_suitable(const VkPhysicalDevice device,const VkSurfaceKHR surface) {
+static u8
+_is_device_suitable(const VkPhysicalDevice device,const VkSurfaceKHR surface) {
     // get device properties (like discreate GPU or integrated GPU)
     // and what features GPU has (like geometry shaders)
     VkPhysicalDeviceProperties deviceProperties;
@@ -68,7 +74,8 @@ static u8 _is_device_suitable(const VkPhysicalDevice device,const VkSurfaceKHR s
 }
 
 
-static void physical_device_pick(const VkInstance instance,PhysicalDevice* device,const VkSurfaceKHR surface) {
+static void
+physical_device_pick(const VkInstance instance, PhysicalDevice* device, const VkSurfaceKHR surface) {
     u32 deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, NULL);
 
@@ -91,4 +98,64 @@ static void physical_device_pick(const VkInstance instance,PhysicalDevice* devic
     device->queues = _find_queue_families(selectedDevice,surface);
     free(devices);
 }
+
+static VkDevice
+physicaldevice_create_logicaldevice(const PhysicalDevice* physicalDevice) {
+
+    // if present and graphics queues are not same we need to create two separate
+    VkDeviceQueueCreateInfo queueCreateInfos[(sizeof(QueueFamilyIndices)) / (sizeof(u32))] = {};
+    // get unique indexes
+    u32 uniqueIndexes[(sizeof(QueueFamilyIndices)) / (sizeof(u32))] = {};
+    const u32* inputIndexes = (const u32*)&physicalDevice->queues;
+    u32 numIndexes = (sizeof(QueueFamilyIndices)) / (sizeof(u32));
+    memcpy(uniqueIndexes,inputIndexes,sizeof(QueueFamilyIndices));
+
+    // remove all non unique indexes from set
+    for(u32 i = 0; i < numIndexes; i++) {
+        for(u32 i2 = (i + 1); i2 < numIndexes; i2++) {
+            if(uniqueIndexes[i] == uniqueIndexes[i2]) {
+                // remove i2 index
+                numIndexes -= 1;
+                uniqueIndexes[i2] = uniqueIndexes[numIndexes];
+                break;
+            }
+        }
+    }
+
+    float queuePriority = 1.0f;
+    for(u32 i = 0; i < numIndexes; i++) {
+        queueCreateInfos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfos[i].queueFamilyIndex = uniqueIndexes[i];
+        queueCreateInfos[i].queueCount = 1;
+
+        // queues priority 0.0 - 1.0
+        queueCreateInfos[i].pQueuePriorities = &queuePriority;
+    }
+
+    // specify what device features we are using
+    VkPhysicalDeviceFeatures deviceFeatures = {};
+    LOG("initialized %d unique queue(s), graphics queue %d and presentation queue %d",
+            numIndexes,physicalDevice->queues.graphicsFamily,physicalDevice->queues.presentFamily);
+
+    // logical devices create info
+    VkDeviceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos = queueCreateInfos;
+    createInfo.queueCreateInfoCount = numIndexes;
+    createInfo.pEnabledFeatures = &deviceFeatures;
+    // specify validation layers is not nessecery anymore but good habbit for older implementations
+    createInfo.enabledLayerCount = SIZEOF_ARRAY(validationLayers);
+    createInfo.ppEnabledLayerNames = validationLayers;
+    // enabled extension
+    createInfo.ppEnabledExtensionNames = g_extensionNames;
+    createInfo.enabledExtensionCount = SIZEOF_ARRAY(g_extensionNames);
+
+    VkDevice device;
+    if (vkCreateDevice(physicalDevice->physicalDevice, &createInfo, NULL, &device) != VK_SUCCESS) {
+        ABORT("Failed to create device");
+    }
+    return device;
+}
+
+
 #endif //PHYSICALDEVICE_H

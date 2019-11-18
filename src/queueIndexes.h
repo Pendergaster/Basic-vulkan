@@ -16,12 +16,6 @@ typedef struct QueueFamilyIndices {
     u32     presentFamily;
 } QueueFamilyIndices ;
 
-// Store all needed data about physical device
-typedef struct PhysicalDevice {
-    VkPhysicalDevice            physicalDevice;
-    QueueFamilyIndices          queues;
-} PhysicalDevice;
-
 static u8 inline _verify_queueFamilyIndices(const QueueFamilyIndices* queue) {
     return queue->graphicsFamily != QUEUE_NOT_EXISTING &&
         queue->presentFamily != QUEUE_NOT_EXISTING;

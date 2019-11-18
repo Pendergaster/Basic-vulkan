@@ -1,6 +1,6 @@
 /************************************************************
-* Check license.txt in project root for license information *
-*********************************************************** */
+ * Check license.txt in project root for license information *
+ *********************************************************** */
 
 #ifndef VULKAN_CONTEXT
 #define VULKAN_CONTEXT
@@ -20,10 +20,7 @@ typedef struct VulkanContext {
     VkSurfaceKHR                surface;
 } VulkanContext;
 
-
-
-static void vulkancontext_init(VulkanContext* context) {
-
+static VkInstance _create_instace() {
     // if validation layer are enabled check that they are supported
     if(enableValidationLayers && !check_validation_layer_support()) {
         ABORT("Failed to enable validation layers");
@@ -76,13 +73,30 @@ static void vulkancontext_init(VulkanContext* context) {
         init_debug_util_create_info(&debugInfo);
         createInfo.pNext = &debugInfo;
     }
+    VkInstance ret;
     // Create instance
-    if (vkCreateInstance(&createInfo, NULL, &context->instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&createInfo, NULL, &ret) != VK_SUCCESS) {
 
         ABORT("failed to create instance");
     }
     LOG("Vulkan instance created");
     free(extensions);
+
+    return ret;
+}
+
+static void vulkancontext_init(VulkanContext* context) {
+    context->instance = _create_instace();
+
+    if (enableValidationLayers) {
+        init_debug_messenger(context->instance,&context->debugMessenger);
+        LOG("Debug messenger initialized");
+    }
+    LOG("Vulkan context initialized");
+    window_create_surface(context->instance,&context->surface);
+    LOG("Window surface created");
+    physical_device_pick(context->instance,&context->physicalDevice,context->surface);
+    LOG("Physical device picked");
 }
 
 static void vulkancontext_dispose(VulkanContext* context) {

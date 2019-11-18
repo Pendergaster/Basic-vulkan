@@ -1,6 +1,6 @@
 /************************************************************
-* Check license.txt in project root for license information *
-*********************************************************** */
+ * Check license.txt in project root for license information *
+ *********************************************************** */
 
 #ifndef LOGICALDEVICE_H
 #define LOGICALDEVICE_H
@@ -12,83 +12,115 @@
 #include "swapchain.h"
 #include "pipeline.h"
 #include "renderpass.h"
+#include "frameBuffer.h"
+#include "commandBuffer.h"
 
 // Store all needed data about Logical device
 typedef struct LogicalDevice {
-    VkDevice    device;
-    VkQueue     graphicsQueue;
-    VkQueue     presentQueue;
-    SwapChain   swapchain;
-    Pipeline    pipeline;
-    RenderPass  renderPass;
+    VkDevice        device;
+    VkQueue         graphicsQueue;
+    VkQueue         presentQueue;
+    SwapChain       swapchain;
+    Pipeline        pipeline;
+    VkRenderPass    renderPass;
+    FrameBuffer     frameBuffer;
+    CommandBuffers  commandBuffer;
+    struct {
+        VkSemaphore     *imageSemaphore;
+        VkSemaphore     *renderSemaphore;
+    };
+    struct { // Ensure that we do not refer to same frame that is in flight
+        VkFence* flightFences;
+        VkFence* imageFences;
+    };
 } LogicalDevice;
 
-static void inline _set_queues(LogicalDevice* device,const QueueFamilyIndices indices) {
-    vkGetDeviceQueue(device->device, indices.graphicsFamily, 0, &device->graphicsQueue);
-    vkGetDeviceQueue(device->device, indices.presentFamily, 0, &device->presentQueue);
-}
+static void _create_semaphores(LogicalDevice* device) {
 
-static void logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device) {
-    // if present and graphics queues are not same we need to create two separate
-    VkDeviceQueueCreateInfo queueCreateInfos[(sizeof(QueueFamilyIndices)) / (sizeof(u32))] = {};
-    // get unique indexes
-    u32 uniqueIndexes[(sizeof(QueueFamilyIndices)) / (sizeof(u32))] = {};
-    const u32* inputIndexes = (const u32*)&physicalDevice->queues;
-    u32 numIndexes = (sizeof(QueueFamilyIndices)) / (sizeof(u32));
-    memcpy(uniqueIndexes,inputIndexes,sizeof(QueueFamilyIndices));
+    device->imageSemaphore = (VkSemaphore*)malloc(sizeof *device->imageSemaphore * MAX_FRAMES_IN_FLIGHT);
+    device->renderSemaphore = (VkSemaphore*)malloc(sizeof *device->renderSemaphore * MAX_FRAMES_IN_FLIGHT);
 
-    // remove all non unique indexes from set
-    for(u32 i = 0; i < numIndexes; i++) {
-        for(u32 i2 = (i + 1); i2 < numIndexes; i2++) {
-            if(uniqueIndexes[i] == uniqueIndexes[i2]) {
-                // remove i2 index
-                numIndexes -= 1;
-                uniqueIndexes[i2] = uniqueIndexes[numIndexes];
-                break;
-            }
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    for(u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        if (vkCreateSemaphore(device->device, &semaphoreInfo, NULL, &device->renderSemaphore[i]) != VK_SUCCESS
+                || vkCreateSemaphore(device->device, &semaphoreInfo, NULL, &device->imageSemaphore[i]) != VK_SUCCESS) {
+            ABORT("failed to create semaphores!");
         }
     }
-
-    float queuePriority = 1.0f;
-    for(u32 i = 0; i < numIndexes; i++) {
-        queueCreateInfos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfos[i].queueFamilyIndex = uniqueIndexes[i];
-        queueCreateInfos[i].queueCount = 1;
-
-        // queues priority 0.0 - 1.0
-        queueCreateInfos[i].pQueuePriorities = &queuePriority;
-    }
-
-    // specify what device features we are using
-    VkPhysicalDeviceFeatures deviceFeatures = {};
-    LOG("initialized %d unique queue(s), graphics queue %d and presentation queue %d",
-            numIndexes,physicalDevice->queues.graphicsFamily,physicalDevice->queues.presentFamily);
-
-    // logical devices create info
-    VkDeviceCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pQueueCreateInfos = queueCreateInfos;
-    createInfo.queueCreateInfoCount = numIndexes;
-    createInfo.pEnabledFeatures = &deviceFeatures;
-    // specify validation layers is not nessecery anymore but good habbit for older implementations
-    createInfo.enabledLayerCount = SIZEOF_ARRAY(validationLayers);
-    createInfo.ppEnabledLayerNames = validationLayers;
-    // enabled extension
-    createInfo.ppEnabledExtensionNames = g_extensionNames;
-    createInfo.enabledExtensionCount = SIZEOF_ARRAY(g_extensionNames);
-    if (vkCreateDevice(physicalDevice->physicalDevice, &createInfo, NULL, &device->device) != VK_SUCCESS) {
-        ABORT("Failed to create device");
-    }
-    // set proper queues
-    _set_queues(device,physicalDevice->queues);
 }
 
-static void inline logicalDevice_dispose(LogicalDevice* device) {
-    pipeline_dispose(&device->pipeline,device->device);
+static void _create_fences(LogicalDevice* device, u32 numSwapChainImages) {
+
+    device->flightFences = (VkFence*)malloc(sizeof *device->flightFences * MAX_FRAMES_IN_FLIGHT);
+    device->imageFences = (VkFence*)calloc(numSwapChainImages, sizeof *device->flightFences);
+
+    VkFenceCreateInfo fenceInfo = {};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for(u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        if(vkCreateFence(device->device, &fenceInfo, NULL, &device->flightFences[i]) != VK_SUCCESS) {
+            ABORT("failed to create flightFences!");
+        }
+    }
+}
+
+static void
+logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, VkSurfaceKHR surface) {
+
+    device->device = physicaldevice_create_logicaldevice(physicalDevice);
+    LOG("Logical device created");
+    // set proper queues
+    vkGetDeviceQueue(device->device, physicalDevice->queues.graphicsFamily, 0, &device->graphicsQueue);
+    vkGetDeviceQueue(device->device, physicalDevice->queues.presentFamily, 0, &device->presentQueue);
+
+    swapchain_init(&device->swapchain, physicalDevice->physicalDevice,
+            surface, physicalDevice->queues,device->device);
+    LOG("Swapchain created");
+    device->renderPass = renderpass_create(&device->swapchain, device->device);
+    LOG("Renderpass inited");
+    pipeline_init(&device->pipeline, device->device, device->swapchain.extent, device->renderPass);
+    LOG("Pipeline created");
+    framebuffer_init(&device->frameBuffer, device->device, &device->swapchain, device->renderPass);
+    LOG("Framebuffer created");
+    commandbuffers_init(&device->commandBuffer, physicalDevice,
+            &device->frameBuffer, device->device, device->renderPass,
+            device->swapchain.extent, device->pipeline.graphicsPipeline);
+    LOG("Commandbuffers created");
+    _create_semaphores(device);
+    LOG("Semaphores created");
+    _create_fences(device, device->swapchain.numImages);
+    LOG("Fences created");
+}
+
+static void
+logicalDevice_dispose(LogicalDevice* device) {
+    for(u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroySemaphore(device->device, device->renderSemaphore[i], NULL);
+        vkDestroySemaphore(device->device, device->imageSemaphore[i], NULL);
+        vkDestroyFence(device->device, device->flightFences[i], NULL);
+    }
+    free(device->renderSemaphore);
+    free(device->imageSemaphore);
+    LOG("Disposed semaphores");
+
+    commandbuffers_dispose(&device->commandBuffer, device->device);
+    LOG("Disposed commandbuffer");
+    framebuffer_dispose(&device->frameBuffer, device->device);
+    LOG("Disposed framebuffer");
+    pipeline_dispose(&device->pipeline, device->device);
+    LOG("Disposed pipeline");
+    renderpass_dispose(device->renderPass, device->device);
+    LOG("Disposed renderpass");
     swapchain_dispose(&device->swapchain,device->device);
+    LOG("Disposed swapchain");
+
     // device queues are automaticly disposed when device is disposed
     vkDestroyDevice(device->device, NULL);
     LOG("Disposed logicaldevice");
+    memset(device, 0 , sizeof *device);
 }
 
 #endif //LOGICALDEVICE_H

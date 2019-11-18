@@ -34,7 +34,7 @@ void window_init() {
     // start glfw with out opengl context
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    glfwSwapInterval(0);
+    glfwSwapInterval(1);
 
     g_window = glfwCreateWindow(SCREENWIDTH,SCREENHEIGHT, "vulkan app", NULL, NULL);
     glfwSetWindowUserPointer(g_window,NULL);

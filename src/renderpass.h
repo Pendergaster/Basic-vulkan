@@ -9,11 +9,10 @@
 #include "utils.h"
 #include "swapchain.h"
 
-typedef struct RenderPass {
-    VkRenderPass renderPass;
-} RenderPass;
 
-static void renderpass_init(RenderPass* pass,const SwapChain* swapchain) {
+static VkRenderPass
+renderpass_create(const SwapChain* swapchain, const VkDevice device) {
+    VkRenderPass pass;
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = swapchain->format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -37,9 +36,57 @@ static void renderpass_init(RenderPass* pass,const SwapChain* swapchain) {
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkSubpassDescription subpass = {};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS; // Draw vertexes
     subpass.colorAttachmentCount = 1;
+    // This arrays index is called directly in shader
     subpass.pColorAttachments = &colorAttachmentRef;
 
+    // Describe what sub passes depends on to correctly synchronice them
+    VkSubpassDependency dependency = {};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    // Wait for swapchain to finish reading from it before we can access it
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    VkRenderPassCreateInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+    if (vkCreateRenderPass(device, &renderPassInfo, NULL, &pass) != VK_SUCCESS) {
+        ABORT("Failed to create renderpass!");
+    }
+
+    return pass;
+}
+
+static void inline
+renderpass_start(VkRenderPass pass, VkCommandBuffer commandBuffer, VkFramebuffer framebuffer, VkExtent2D extent) {
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = pass;
+    renderPassInfo.framebuffer = framebuffer;
+
+    renderPassInfo.renderArea.offset = (VkOffset2D){0, 0};
+    renderPassInfo.renderArea.extent = extent;
+
+    VkClearValue clearColor = (VkClearValue){0.0f, 0.0f, 0.0f, 1.0f};
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = &clearColor;
+
+    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+static void
+renderpass_dispose(VkRenderPass pass, const VkDevice device) {
+
+    vkDestroyRenderPass(device, pass, NULL);
 }
 #endif /* RENDERPASS_H */

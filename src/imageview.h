@@ -7,12 +7,8 @@
 #include <vulkan/vulkan.h>
 #include "utils.h"
 
-typedef struct ImageView {
-    VkImageView view;
-} ImageView;
-
-static ImageView imageview_create(const VkImage image, VkFormat format,const VkDevice device) {
-    ImageView ret = {};
+static VkImageView imageview_create(const VkImage image, VkFormat format,const VkDevice device) {
+    VkImageView ret = 0;
 
     VkImageViewCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -33,15 +29,15 @@ static ImageView imageview_create(const VkImage image, VkFormat format,const VkD
     createInfo.subresourceRange.baseArrayLayer = 0;
     createInfo.subresourceRange.layerCount = 1;
 
-    if (vkCreateImageView(device, &createInfo, NULL, &ret.view) != VK_SUCCESS) {
+    if (vkCreateImageView(device, &createInfo, NULL, &ret) != VK_SUCCESS) {
         ABORT("Failed to create image view");
     }
 
     return ret;
 }
 
-static void imageview_dispose(const ImageView view,const VkDevice device) {
-    vkDestroyImageView(device,view.view,NULL);
+static void imageview_dispose(const VkImageView view,const VkDevice device) {
+    vkDestroyImageView(device,view,NULL);
 }
 
 #endif /* IMAGEVIEW_H */

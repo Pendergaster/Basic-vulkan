@@ -53,4 +53,6 @@ static const u64 numeric_max_u64 = 0xFFFFFFFFFFFFFFFF;
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif // WINDOWS_PLATWORM
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 #endif // UTILSDEFS
