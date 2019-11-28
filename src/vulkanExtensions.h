@@ -1,5 +1,6 @@
 #ifndef VULKANEXTENSIONS_H
 #define VULKANEXTENSIONS_H
+
 #include <vulkan/vulkan.h>
 #include "defs.h"
 #include "validationLayers.h"

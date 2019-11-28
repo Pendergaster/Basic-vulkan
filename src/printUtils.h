@@ -1,6 +1,6 @@
 /************************************************************
-* Check license.txt in project root for license information *
-*********************************************************** */
+ * Check license.txt in project root for license information *
+ *********************************************************** */
 
 #ifndef COLORPRINT_H
 #define COLORPRINT_H
@@ -10,6 +10,7 @@
 #include "defs.h"
 
 // used functions
+#if 0
 #define LOG_COLOR(COLOR,...) _LOG_COLOR((COLOR),__FILE__, __LINE__,stdout,__VA_ARGS__)
 #define LOG_COLOR_ERR(COLOR,...) _LOG_COLOR((COLOR),__FILE__, __LINE__,stderr,__VA_ARGS__)
 
@@ -17,6 +18,20 @@
 #define LOG(MSG,...) _LOG(__FILE__, __LINE__,stdout,(MSG),__VA_ARGS__)
 #define ASSERT_MESSAGE(condition,...) _ASSERT_MESSAGE(((condition) != 0),__FILE__, __LINE__,__VA_ARGS__)
 #define ABORT(...) _ABORT(__FILE__, __LINE__,__VA_ARGS__)
+#endif
+
+#if !defined(YCMIGNORE)
+#define LOG(MSG,...) _LOG(__FILE__, __LINE__,stdout,MSG, ##__VA_ARGS__)
+#define ASSERT_MESSAGE(condition,...) _ASSERT_MESSAGE(((condition) != 0),(#condition), __FILE__, __LINE__ VA_ARGS(__VA_ARGS__))
+#define ABORT(...) _ABORT(__FILE__, __LINE__ VA_ARGS(__VA_ARGS__))
+#define LOG_COLOR_ERR(COLOR,...) _LOG_COLOR((COLOR),__FILE__, __LINE__,stderr,__VA_ARGS__)
+#else
+#define LOG(...)
+#define ASSERT_MESSAGE(...)
+#define ABORT(...)
+#endif
+
+
 
 
 static void _LOG(const char* file,const u32 row,FILE* stream,char* format,...);
@@ -46,22 +61,26 @@ static void colored_print_init() {
 
 #elif defined(LINUX_PLATFORM)
 
-#define CONSOLE_COLOR_BLUE  0
-#define CONSOLE_COLOR_GREEN 0
-#define CONSOLE_COLOR_RED   0
+#define CONSOLE_COLOR_BLUE  34
+#define CONSOLE_COLOR_GREEN 32
+#define CONSOLE_COLOR_RED   31
 
+static const PRINT_COLORS[] {
 
-static void* consoleHandle = NULL;
-static void init_colored_print() {
-    LOG("TODO colored printing");
 }
 
+static void* consoleHandle = NULL;
+static void colored_print_init() {
+    LOG("TODO colored printing");
+    (void)consoleHandle;
+}
 
 
 #endif // WIN32
 
 
 static void _LOG_COLOR (u32 color,const char* file,const u32 row,FILE* stream,char* format,...) {
+    (void) color;
 
 #if defined(WINDOWS_PLATFORM)
     CONSOLE_SCREEN_BUFFER_INFO consoleInfo = {};
@@ -91,7 +110,8 @@ static void _LOG_COLOR (u32 color,const char* file,const u32 row,FILE* stream,ch
 #endif
 }
 
-static void _ASSERT_MESSAGE(u8 condition,const char* file,const u32 row,char* format,...) {
+static void _ASSERT_MESSAGE(u8 condition,const char* condStr,const char* file,const u32 row,char* format,...) {
+    //static void _ASSERT_MESSAGE(u8 condition,const char* file,const u32 row,char* format,...) {
     if(!condition) {
 #if defined(WINDOWS_PLATFORM)
         // save last state
@@ -105,16 +125,16 @@ static void _ASSERT_MESSAGE(u8 condition,const char* file,const u32 row,char* fo
             SetConsoleTextAttribute(consoleHandle, CONSOLE_COLOR_RED);
         }
 #endif
-
         va_list args;
         va_start (args, format);
-        fprintf(stderr,"ASSERTION FAILED: ");
+        fprintf(stderr,"(%s) ASSERTION FAILED: ",condStr);
         vfprintf (stderr,format, args);
         fprintf(stderr," in file : %s:%d \n", file, row);
         fflush(stderr);
 
         va_end (args);
         // set state back
+        _Exit(1);
 
 #if defined(WINDOWS_PLATFORM)
         if(NULL != consoleHandle) {

@@ -94,7 +94,7 @@ draw_frame(LogicalDevice* device) {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    VkSubpassDependency dependency = {};
+    VkSubpassDependency dependency = {};(void) dependency; //TODO
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
 

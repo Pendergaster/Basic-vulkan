@@ -23,6 +23,8 @@ static const u16 numeric_max_u16 = 0xFFFF;
 static const u32 numeric_max_u32 = 0xFFFFFFFF;
 static const u64 numeric_max_u64 = 0xFFFFFFFFFFFFFFFF;
 
+#define VA_ARGS(...) , ##__VA_ARGS__
+
 #define LOG_STR "LOG: "
 
 #define free(PTR) do{free((PTR));(PTR) = NULL;}while(0)
@@ -45,7 +47,7 @@ static const u64 numeric_max_u64 = 0xFFFFFFFFFFFFFFFF;
 // what is the real definition, will never know
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__) || defined(_MSC_VER)
 #define WINDOWS_PLATFORM
-#elif
+#else
 #define LINUX_PLATFORM
 #endif
 
@@ -53,6 +55,6 @@ static const u64 numeric_max_u64 = 0xFFFFFFFFFFFFFFFF;
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif // WINDOWS_PLATWORM
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
+const u32 MAX_FRAMES_IN_FLIGHT = 2;
 
 #endif // UTILSDEFS

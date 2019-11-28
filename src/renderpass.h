@@ -67,7 +67,7 @@ renderpass_create(const SwapChain* swapchain, const VkDevice device) {
     return pass;
 }
 
-static void inline
+inline static void
 renderpass_start(VkRenderPass pass, VkCommandBuffer commandBuffer, VkFramebuffer framebuffer, VkExtent2D extent) {
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;

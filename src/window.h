@@ -5,10 +5,6 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#if defined(WINDOWS_PLATFORM)
-#endif
-
-
 #include "utils.h"
 
 #define GLFW_INCLUDE_VULKAN
@@ -34,7 +30,7 @@ void window_init() {
     // start glfw with out opengl context
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
 
     g_window = glfwCreateWindow(SCREENWIDTH,SCREENHEIGHT, "vulkan app", NULL, NULL);
     glfwSetWindowUserPointer(g_window,NULL);
@@ -49,7 +45,7 @@ void window_create_surface(const VkInstance instance,VkSurfaceKHR* surface) {
     }
 }
 
-inline const char** window_get_required_extensions(u32* count) {
+static const char** window_get_required_extensions(u32* count) {
     return glfwGetRequiredInstanceExtensions(count);
 }
 

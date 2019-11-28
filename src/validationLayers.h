@@ -81,7 +81,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 // loaded function to destroy messenger
 PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessenger = NULL;
 
-static void inline init_debug_util_create_info(VkDebugUtilsMessengerCreateInfoEXT* createInfo) {
+static void init_debug_util_create_info(VkDebugUtilsMessengerCreateInfoEXT* createInfo) {
     // What kind of struct this is
     createInfo->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     createInfo->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
@@ -110,7 +110,7 @@ static void init_debug_messenger(VkInstance instance,VkDebugUtilsMessengerEXT*  
     ASSERT_MESSAGE(func,"FAILED TO LOAD THE DEBUG MESSENGER DISPOSING EXTENSION");
 }
 
-static void inline dispose_debug_messenger(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger) {
+static void dispose_debug_messenger(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger) {
     ASSERT_MESSAGE(vkDestroyDebugUtilsMessenger ,"FUNCTION IS NOT LOADED");
     vkDestroyDebugUtilsMessenger(instance,debugMessenger,NULL /*Allocator*/);
 }

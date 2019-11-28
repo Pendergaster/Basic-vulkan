@@ -16,7 +16,7 @@ typedef struct QueueFamilyIndices {
     u32     presentFamily;
 } QueueFamilyIndices ;
 
-static u8 inline _verify_queueFamilyIndices(const QueueFamilyIndices* queue) {
+inline static u8 _verify_queueFamilyIndices(const QueueFamilyIndices* queue) {
     return queue->graphicsFamily != QUEUE_NOT_EXISTING &&
         queue->presentFamily != QUEUE_NOT_EXISTING;
 }
