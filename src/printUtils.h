@@ -12,7 +12,7 @@
 // used functions
 #if 0
 #define LOG_COLOR(COLOR,...) _LOG_COLOR((COLOR),__FILE__, __LINE__,stdout,__VA_ARGS__)
-#define LOG_COLOR_ERR(COLOR,...) _LOG_COLOR((COLOR),__FILE__, __LINE__,stderr,__VA_ARGS__)
+#define LOG_ERR(COLOR,...) _LOG_COLOR((COLOR),__FILE__, __LINE__,stderr,__VA_ARGS__)
 
 
 #define LOG(MSG,...) _LOG(__FILE__, __LINE__,stdout,(MSG),__VA_ARGS__)
@@ -21,14 +21,22 @@
 #endif
 
 #if !defined(YCMIGNORE)
+
 #define LOG(MSG,...) _LOG(__FILE__, __LINE__,stdout,MSG, ##__VA_ARGS__)
 #define ASSERT_MESSAGE(condition,...) _ASSERT_MESSAGE(((condition) != 0),(#condition), __FILE__, __LINE__ VA_ARGS(__VA_ARGS__))
 #define ABORT(...) _ABORT(__FILE__, __LINE__ VA_ARGS(__VA_ARGS__))
-#define LOG_COLOR_ERR(COLOR,...) _LOG_COLOR((COLOR),__FILE__, __LINE__,stderr,__VA_ARGS__)
+#define LOG_COLOR(COLOR,...) _LOG_COLOR((COLOR),__FILE__, __LINE__,stdout VA_ARGS(__VA_ARGS__))
+
+#define LOG_ERR(COLOR,...) _LOG_COLOR((COLOR),__FILE__, __LINE__,stderr,__VA_ARGS__)
+
 #else
+
 #define LOG(...)
 #define ASSERT_MESSAGE(...)
 #define ABORT(...)
+#define LOG_COLOR(...)
+#define LOG_ERR(...)
+
 #endif
 
 
@@ -61,20 +69,34 @@ static void colored_print_init() {
 
 #elif defined(LINUX_PLATFORM)
 
-#define CONSOLE_COLOR_BLUE  34
-#define CONSOLE_COLOR_GREEN 32
-#define CONSOLE_COLOR_RED   31
+//#define CONSOLE_COLOR_BLUE  34
+//#define CONSOLE_COLOR_GREEN 32
+//#define CONSOLE_COLOR_RED   31
 
-static const PRINT_COLORS[] {
+#define CREATE_ENUM(ENUM, VOID) ENUM,
+#define CREATE_COLOR_STRINGS(VOID,VALUE) "\x1b["#VALUE"m",
 
-}
+#define COLOR_TYPES(MODE)\
+	MODE(CONSOLE_COLOR_BLUE, 34)\
+	MODE(CONSOLE_COLOR_GREEN, 32)\
+	MODE(CONSOLE_COLOR_RED, 31)
+
+static const char* COLOR_STRINGS[] = {
+    COLOR_TYPES(CREATE_COLOR_STRINGS)
+};
+
+enum COLOR_VALUES {
+    COLOR_TYPES(CREATE_ENUM)
+        max_color
+};
 
 static void* consoleHandle = NULL;
 static void colored_print_init() {
-    LOG("TODO colored printing");
+    LOG_COLOR(CONSOLE_COLOR_GREEN,"colored printing");
     (void)consoleHandle;
 }
 
+#define ANSI_COLOR_RESET "\x1b[0m"
 
 #endif // WIN32
 
@@ -94,11 +116,21 @@ static void _LOG_COLOR (u32 color,const char* file,const u32 row,FILE* stream,ch
     }
 
 #endif
+
+#if defined(LINUX_PLATFORM)
+    va_list args;
+    va_start (args, format);
+    fprintf(stream,LOG_STR"%s",COLOR_STRINGS[color] );
+    vfprintf (stream,format, args);
+    fprintf(stream,"%s in file : %s:%d \n",ANSI_COLOR_RESET, file, row);
+#elif defined(WINDOWS_PLATFORM)
     va_list args;
     va_start (args, format);
     fprintf(stream,LOG_STR);
     vfprintf (stream,format, args);
+
     fprintf(stream," in file : %s:%d \n", file, row);
+#endif
     fflush(stream);
 
     va_end (args);

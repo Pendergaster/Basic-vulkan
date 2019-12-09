@@ -24,6 +24,7 @@ typedef struct LogicalDevice {
     Pipeline        pipeline;
     VkRenderPass    renderPass;
     FrameBuffer     frameBuffer;
+    VkCommandPool   commandPool;
     CommandBuffers  commandBuffer;
     struct {
         VkSemaphore     *imageSemaphore;
@@ -85,9 +86,11 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
     LOG("Pipeline created");
     framebuffer_init(&device->frameBuffer, device->device, &device->swapchain, device->renderPass);
     LOG("Framebuffer created");
-    commandbuffers_init(&device->commandBuffer, physicalDevice,
+    device->commandPool = commandpool_create(physicalDevice->queues.graphicsFamily, device->device);
+    LOG("Commandpool created");
+    commandbuffers_init(&device->commandBuffer,
             &device->frameBuffer, device->device, device->renderPass,
-            device->swapchain.extent, device->pipeline.graphicsPipeline);
+            device->swapchain.extent, device->pipeline.graphicsPipeline, device->commandPool);
     LOG("Commandbuffers created");
     _create_semaphores(device);
     LOG("Semaphores created");
@@ -95,8 +98,22 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
     LOG("Fences created");
 }
 
-static void
-logicalDevice_dispose(LogicalDevice* device) {
+static void _swapchain_cleanup(LogicalDevice* device) {
+
+    framebuffer_dispose(&device->frameBuffer, device->device);
+    LOG("Disposed framebuffer");
+    vkFreeCommandBuffers(device->device, device->commandPool,
+            device->commandBuffer.numBuffers, device->commandBuffer.buffers);
+    LOG("Freed commandbuffers");
+    pipeline_dispose(&device->pipeline, device->device);
+    LOG("Disposed pipeline");
+    renderpass_dispose(device->renderPass, device->device);
+    LOG("Disposed renderpass");
+    swapchain_dispose(&device->swapchain,device->device);
+    LOG("Disposed swapchain");
+}
+
+static void _semaphores_dispose(LogicalDevice* device) {
     for(u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroySemaphore(device->device, device->renderSemaphore[i], NULL);
         vkDestroySemaphore(device->device, device->imageSemaphore[i], NULL);
@@ -104,10 +121,26 @@ logicalDevice_dispose(LogicalDevice* device) {
     }
     free(device->renderSemaphore);
     free(device->imageSemaphore);
+
+}
+
+static void
+logicalDevice_dispose(LogicalDevice* device) {
+    _swapchain_cleanup(device);
+    LOG("Disposed swapchain");
+
+    _semaphores_dispose(device);
     LOG("Disposed semaphores");
 
-    commandbuffers_dispose(&device->commandBuffer, device->device);
+    commandbuffers_dispose(&device->commandBuffer);
     LOG("Disposed commandbuffer");
+
+    commandpool_dispose(device->commandPool, device->device);
+    LOG("Disposed commandbuffer");
+
+
+
+#if 0
     framebuffer_dispose(&device->frameBuffer, device->device);
     LOG("Disposed framebuffer");
     pipeline_dispose(&device->pipeline, device->device);
@@ -116,11 +149,33 @@ logicalDevice_dispose(LogicalDevice* device) {
     LOG("Disposed renderpass");
     swapchain_dispose(&device->swapchain,device->device);
     LOG("Disposed swapchain");
-
+#endif
     // device queues are automaticly disposed when device is disposed
     vkDestroyDevice(device->device, NULL);
     LOG("Disposed logicaldevice");
     memset(device, 0 , sizeof *device);
+}
+
+
+static void logicaldevice_resize(LogicalDevice* device,const PhysicalDevice* physicalDevice, VkSurfaceKHR surface) {
+    vkDeviceWaitIdle(device->device);
+
+    // cleanup old swapchain
+    _swapchain_cleanup(device);
+
+    // reinit everything
+    swapchain_init(&device->swapchain, physicalDevice->physicalDevice,
+            surface, physicalDevice->queues,device->device);
+    LOG("Swapchain recreated");
+    device->renderPass = renderpass_create(&device->swapchain, device->device);
+    LOG("Renderpass recreated");
+    pipeline_init(&device->pipeline, device->device, device->swapchain.extent, device->renderPass);
+    LOG("Pipeline recreated");
+    framebuffer_init(&device->frameBuffer, device->device, &device->swapchain, device->renderPass);
+    LOG("Framebuffer recreated");
+    commandbuffers_init(&device->commandBuffer, &device->frameBuffer, device->device, device->renderPass,
+            device->swapchain.extent, device->pipeline.graphicsPipeline, device->commandPool);
+    LOG("Commandbuffers recreated");
 }
 
 #endif //LOGICALDEVICE_H

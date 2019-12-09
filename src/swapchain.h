@@ -91,7 +91,10 @@ static VkExtent2D _swapchain_choose_extent(const VkSurfaceCapabilitiesKHR* capab
     if(capabilities->currentExtent.width != numeric_max_u32) {
         return capabilities->currentExtent;
     }
-    VkExtent2D actualExtent = {.width = SCREENWIDTH, .height = SCREENHEIGHT};
+    // Query the size
+    int width, height;
+    glfwGetFramebufferSize(g_window, &width, &height);
+    VkExtent2D actualExtent = {.width = width, .height = height};
 
     // clamp value between max and min values
     actualExtent.width = clamp_u32(actualExtent.width,
@@ -175,6 +178,6 @@ static void swapchain_dispose(SwapChain* chain,const VkDevice device) {
     vkDestroySwapchainKHR(device,chain->swapchain,NULL);
     free(chain->swapchainImages);
     memset(chain,0,sizeof *chain);
-    LOG("Disposed swapchain");
 }
+
 #endif

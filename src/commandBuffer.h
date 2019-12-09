@@ -12,20 +12,20 @@
 #include "frameBuffer.h"
 
 typedef struct CommandBuffers {
-    VkCommandPool       pool;
+    //VkCommandPool       pool;
     VkCommandBuffer*    buffers;
     u32                 numBuffers;
 } CommandBuffers;
 
 
 static inline VkCommandPool
-_commandpool_create(const PhysicalDevice* physicalDevice, const VkDevice device) {
+commandpool_create(u32 graphicsFamily, const VkDevice device) {
 
     VkCommandPool ret = 0;
 
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = physicalDevice->queues.graphicsFamily;
+    poolInfo.queueFamilyIndex = graphicsFamily;
     poolInfo.flags = 0; // Optional
 
     //VK_COMMAND_POOL_CREATE_TRANSIENT_BIT:
@@ -41,18 +41,18 @@ _commandpool_create(const PhysicalDevice* physicalDevice, const VkDevice device)
 }
 
 static void
-commandbuffers_init(CommandBuffers* buffer, const PhysicalDevice* physicalDevice, const FrameBuffer* framebuffer,
-        const VkDevice device, const VkRenderPass renderpass, VkExtent2D swapExtent, VkPipeline gpipeline) {
+commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
+        const VkDevice device, const VkRenderPass renderpass, VkExtent2D swapExtent, VkPipeline gpipeline, VkCommandPool pool) {
 
-    // Create poo where buffers will be created
-    buffer->pool = _commandpool_create(physicalDevice, device);
+    // Create pool where buffers will be created
+    //buffer->pool = _commandpool_create(physicalDevice, device);
     // Create buffer for each framebuffer
     buffer->buffers = (VkCommandBuffer*)malloc(sizeof(VkCommandBuffer) * framebuffer->numBuffers);
     buffer->numBuffers = framebuffer->numBuffers;
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = buffer->pool;
+    allocInfo.commandPool = pool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = buffer->numBuffers;
 
@@ -83,9 +83,13 @@ commandbuffers_init(CommandBuffers* buffer, const PhysicalDevice* physicalDevice
     }
 }
 
-static void commandbuffers_dispose(CommandBuffers* buffer, const VkDevice device) {
+static void commandpool_dispose(VkCommandPool pool, const VkDevice device) {
 
-    vkDestroyCommandPool(device, buffer->pool, NULL);
+    vkDestroyCommandPool(device, pool, NULL);
+}
+
+static void commandbuffers_dispose(CommandBuffers* buffer) {
+
     free(buffer->buffers);
     memset(buffer, 0, sizeof *buffer);
 }

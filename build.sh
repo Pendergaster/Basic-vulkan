@@ -1,5 +1,6 @@
 #!/bin/bash
 
+clear
 BUILD_DIR=./build/debug
 
 if [ ! -d $BUILD_DIR ]; then

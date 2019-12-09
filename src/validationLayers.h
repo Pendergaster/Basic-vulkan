@@ -56,22 +56,22 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageTypeFlagsEXT messageType,
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData) {
-    (void)pUserData;
+    (void)pUserData;(void)pCallbackData;
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
         // Message is important enough to show
         switch(messageType) {
             case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
-                LOG_COLOR_ERR(CONSOLE_COLOR_RED,"VALIDATION LAYER EVENT MESSAGE : %s\n", pCallbackData->pMessage );
+                LOG_ERR(CONSOLE_COLOR_RED,"VALIDATION LAYER EVENT MESSAGE : %s\n", pCallbackData->pMessage );
                 break;
             case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
 
-                LOG_COLOR_ERR(CONSOLE_COLOR_RED,"VALIDATION LAYER ERROR MESSAGE : %s\n", pCallbackData->pMessage );
+                LOG_ERR(CONSOLE_COLOR_RED,"VALIDATION LAYER ERROR MESSAGE : %s\n", pCallbackData->pMessage );
                 break;
             case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
-                LOG_COLOR_ERR(CONSOLE_COLOR_RED,"VALIDATION LAYER ERROR MESSAGE : %s\n", pCallbackData->pMessage );
+                LOG_ERR(CONSOLE_COLOR_RED,"VALIDATION LAYER ERROR MESSAGE : %s\n", pCallbackData->pMessage );
                 break;
             default:
-                LOG_COLOR_ERR(CONSOLE_COLOR_RED,"VALIDATION LAYER UNKNOWN MESSAGE : %s\n", pCallbackData->pMessage );
+                LOG_ERR(CONSOLE_COLOR_RED,"VALIDATION LAYER UNKNOWN MESSAGE : %s\n", pCallbackData->pMessage );
 
         }
     }
