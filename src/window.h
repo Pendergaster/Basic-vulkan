@@ -19,23 +19,30 @@
 #define SCREENWIDTH 1000
 #define SCREENHEIGHT 800
 
-static GLFWwindow* g_window = NULL;
+static GLFWwindow*  g_window;
+static u8           g_resizedWindow;
 
 static void error_callback(int e, const char *d) {
     ABORT("GLFW error %d: %s\n", e, d);
+}
+
+static void window_resize_callback(GLFWwindow* window, int width, int height) {
+    (void)window;(void)width;(void)height;
+    g_resizedWindow = 1;
 }
 
 void window_init() {
     glfwInit();
     // start glfw with out opengl context
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     glfwSwapInterval(0);
 
     g_window = glfwCreateWindow(SCREENWIDTH,SCREENHEIGHT, "vulkan app", NULL, NULL);
     glfwSetWindowUserPointer(g_window,NULL);
     //glfwSetFramebufferSizeCallback(g_window,framebuffer_resize_callback);
     glfwSetErrorCallback(error_callback);
+    glfwSetFramebufferSizeCallback(g_window, window_resize_callback);
     ASSERT_MESSAGE(g_window,"FAILED TO INIT WINDOW"); // failed to create window
 }
 
