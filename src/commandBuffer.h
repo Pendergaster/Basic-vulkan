@@ -10,6 +10,7 @@
 #include "physicalDevice.h"
 #include "renderpass.h"
 #include "frameBuffer.h"
+#include "vertex.h"
 
 typedef struct CommandBuffers {
     //VkCommandPool       pool;
@@ -42,7 +43,7 @@ commandpool_create(u32 graphicsFamily, const VkDevice device) {
 
 static void
 commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
-        const VkDevice device, const VkRenderPass renderpass, VkExtent2D swapExtent, VkPipeline gpipeline, VkCommandPool pool) {
+        const VkDevice device, const VkRenderPass renderpass, VkExtent2D swapExtent, VkPipeline gpipeline, VkCommandPool pool, VertexData* vertexData) {
 
     // Create pool where buffers will be created
     //buffer->pool = _commandpool_create(physicalDevice, device);
@@ -73,7 +74,17 @@ commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
         // Bind graphics pipeline
         vkCmdBindPipeline(buffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, gpipeline);
 
-        vkCmdDraw(buffer->buffers[i], 3, 1, 0, 0);
+        // Bind vertex buffer
+        VkBuffer vertBuffers[] = {vertexData->vertexBuffer};
+        VkDeviceSize offsets[] = {0}; // byte offset where start to read vertex data from
+// typedef void (VKAPI_PTR *PFN_vkCmdBindVertexBuffers)(VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets);
+        vkCmdBindVertexBuffers(buffer->buffers[i],
+                0, // firstbinding
+                1, // bindingcount
+                vertBuffers, offsets);
+
+
+        vkCmdDraw(buffer->buffers[i], SIZEOF_ARRAY(Triangle), 1, 0, 0);
 
         vkCmdEndRenderPass(buffer->buffers[i]);
 

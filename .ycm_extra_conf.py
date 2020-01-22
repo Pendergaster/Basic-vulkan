@@ -19,11 +19,12 @@ flags = [
         '-fexceptions',
         '-ferror-limit=10000',
         '-DNDEBUG',
+        '-DYCMIGNORE',
         '-std=c99',
         '-xc',
         '-isystem/usr/include/',
         '-I./external/include',
-        '-I','C:/VulkanSDK/1.1.85.0\\Include',
+        '-I','/home/pate/Downloads/vulkan/1.1.126.0/x86_64/include/',
         '-D PAKKI_DEBUG'
         '-D_CRT_SECURE_NO_WARNINGS'
         ]

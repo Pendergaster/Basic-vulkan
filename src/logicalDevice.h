@@ -14,6 +14,7 @@
 #include "renderpass.h"
 #include "frameBuffer.h"
 #include "commandBuffer.h"
+#include "vertex.h"
 
 // Store all needed data about Logical device
 typedef struct LogicalDevice {
@@ -26,6 +27,7 @@ typedef struct LogicalDevice {
     FrameBuffer     frameBuffer;
     VkCommandPool   commandPool;
     CommandBuffers  commandBuffer;
+    VertexData      vertexData;
     struct {
         VkSemaphore     *imageSemaphore;
         VkSemaphore     *renderSemaphore;
@@ -88,9 +90,16 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
     LOG("Framebuffer created");
     device->commandPool = commandpool_create(physicalDevice->queues.graphicsFamily, device->device);
     LOG("Commandpool created");
+
+    vertexdata_init(&device->vertexData, device->device, physicalDevice->physicalDevice);
+    LOG("Vertex data inited");
+
     commandbuffers_init(&device->commandBuffer,
             &device->frameBuffer, device->device, device->renderPass,
-            device->swapchain.extent, device->pipeline.graphicsPipeline, device->commandPool);
+            device->swapchain.extent, device->pipeline.graphicsPipeline,
+            device->commandPool, &device->vertexData);
+
+
     LOG("Commandbuffers created");
     _create_semaphores(device);
     LOG("Semaphores created");
@@ -129,6 +138,9 @@ logicalDevice_dispose(LogicalDevice* device) {
     _swapchain_cleanup(device);
     LOG("Disposed swapchain");
 
+    vertexdata_dispose(&device->vertexData, device->device);
+    LOG("vertex buffer disposed");
+
     _semaphores_dispose(device);
     LOG("Disposed semaphores");
 
@@ -138,18 +150,6 @@ logicalDevice_dispose(LogicalDevice* device) {
     commandpool_dispose(device->commandPool, device->device);
     LOG("Disposed commandbuffer");
 
-
-
-#if 0
-    framebuffer_dispose(&device->frameBuffer, device->device);
-    LOG("Disposed framebuffer");
-    pipeline_dispose(&device->pipeline, device->device);
-    LOG("Disposed pipeline");
-    renderpass_dispose(device->renderPass, device->device);
-    LOG("Disposed renderpass");
-    swapchain_dispose(&device->swapchain,device->device);
-    LOG("Disposed swapchain");
-#endif
     // device queues are automaticly disposed when device is disposed
     vkDestroyDevice(device->device, NULL);
     LOG("Disposed logicaldevice");
@@ -174,7 +174,7 @@ static void logicaldevice_resize(LogicalDevice* device,const PhysicalDevice* phy
     framebuffer_init(&device->frameBuffer, device->device, &device->swapchain, device->renderPass);
     LOG("Framebuffer recreated");
     commandbuffers_init(&device->commandBuffer, &device->frameBuffer, device->device, device->renderPass,
-            device->swapchain.extent, device->pipeline.graphicsPipeline, device->commandPool);
+            device->swapchain.extent, device->pipeline.graphicsPipeline, device->commandPool, &device->vertexData);
     LOG("Commandbuffers recreated");
 }
 

@@ -8,7 +8,7 @@ if [ ! -d $BUILD_DIR ]; then
     mkdir $BUILD_DIR
 fi
 
-gcc \
+time gcc \
 src/main.c \
 -I "/home/pate/Downloads/vulkan/1.1.126.0/x86_64/include/" \
 -DBUILD_DEBUG \

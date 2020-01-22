@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.h>
 #include "utils.h"
 #include "fileutils.h"
+#include "vertex.h"
 
 typedef struct Pipeline {
     // Uniforms
@@ -69,10 +70,12 @@ pipeline_init(Pipeline* pipeline, const VkDevice device,const VkExtent2D drawExt
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = NULL; // Optional
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = NULL; // Optional
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    VkVertexInputBindingDescription triangleDesc = triangle_get_binding_description();
+    vertexInputInfo.pVertexBindingDescriptions = &triangleDesc;
+    vertexInputInfo.vertexAttributeDescriptionCount = 2;
+    TriangleAttributeDescription attrDesc = triangle_get_attribute_descriptions();
+    vertexInputInfo.pVertexAttributeDescriptions = (VkVertexInputAttributeDescription*)&attrDesc;
 
     // Describe what kind of geometry
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};

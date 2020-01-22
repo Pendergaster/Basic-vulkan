@@ -26,6 +26,7 @@ main(const int argc,char **argv)
     LogicalDevice logicalDevice = {};
     init(&context,&logicalDevice);
 
+
     main_loop(&logicalDevice, &context);
 
     cleanup(&context,&logicalDevice);
@@ -42,7 +43,6 @@ init(VulkanContext* context, LogicalDevice* device) {
     LOG("Context initialized");
     logicaldevice_init(&context->physicalDevice, device, context->surface);
     LOG("logical parts initialized!");
-
 }
 
 static void
@@ -65,7 +65,7 @@ draw_frame(LogicalDevice* device, VulkanContext* context) {
 
     u32 imageIndex;
     // Get image index
-    VkResult res =  vkAcquireNextImageKHR(device->device, device->swapchain.swapchain, UINT64_MAX,
+    VkResult res = vkAcquireNextImageKHR(device->device, device->swapchain.swapchain, UINT64_MAX,
             device->imageSemaphore[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
     if (res == VK_ERROR_OUT_OF_DATE_KHR) { // Resized and not avaivable

@@ -157,5 +157,27 @@ physicaldevice_create_logicaldevice(const PhysicalDevice* physicalDevice) {
     return device;
 }
 
+// Find right type of memory allocate from
+static u32
+physicaldevice_find_memorytype(VkPhysicalDevice device,u32 typeFilter, VkMemoryPropertyFlags properties) {
+
+    // query info about available types
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(device, &memProperties);
+
+    for (u32 i = 0; i < memProperties.memoryTypeCount; i++) {
+        if (
+                //first check that typefilter bitmap matches
+                (typeFilter & (1 << i)) &&
+                // then check that properties we can do what is required with memory (like write or read)
+                (memProperties.memoryTypes[i].propertyFlags & properties)
+           ) {
+            return i;
+        }
+    }
+
+    ABORT("failed to find suitable memory type");
+    return 0;
+}
 
 #endif //PHYSICALDEVICE_H
