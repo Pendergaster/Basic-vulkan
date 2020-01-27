@@ -27,7 +27,7 @@ typedef struct LogicalDevice {
     FrameBuffer     frameBuffer;
     VkCommandPool   commandPool;
     CommandBuffers  commandBuffer;
-    VertexData      vertexData;
+    Buffer      vertexData;
     struct {
         VkSemaphore     *imageSemaphore;
         VkSemaphore     *renderSemaphore;
@@ -91,7 +91,8 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
     device->commandPool = commandpool_create(physicalDevice->queues.graphicsFamily, device->device);
     LOG("Commandpool created");
 
-    vertexdata_init(&device->vertexData, device->device, physicalDevice->physicalDevice);
+    vertexdata_init(&device->vertexData, device->device,
+            physicalDevice->physicalDevice, device->commandPool, device->graphicsQueue);
     LOG("Vertex data inited");
 
     commandbuffers_init(&device->commandBuffer,
@@ -138,7 +139,7 @@ logicalDevice_dispose(LogicalDevice* device) {
     _swapchain_cleanup(device);
     LOG("Disposed swapchain");
 
-    vertexdata_dispose(&device->vertexData, device->device);
+    buffer_dispose(&device->vertexData, device->device);
     LOG("vertex buffer disposed");
 
     _semaphores_dispose(device);

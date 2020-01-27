@@ -43,7 +43,7 @@ commandpool_create(u32 graphicsFamily, const VkDevice device) {
 
 static void
 commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
-        const VkDevice device, const VkRenderPass renderpass, VkExtent2D swapExtent, VkPipeline gpipeline, VkCommandPool pool, VertexData* vertexData) {
+        const VkDevice device, const VkRenderPass renderpass, VkExtent2D swapExtent, VkPipeline gpipeline, VkCommandPool pool, Buffer* vertexData) {
 
     // Create pool where buffers will be created
     //buffer->pool = _commandpool_create(physicalDevice, device);
@@ -75,7 +75,7 @@ commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
         vkCmdBindPipeline(buffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, gpipeline);
 
         // Bind vertex buffer
-        VkBuffer vertBuffers[] = {vertexData->vertexBuffer};
+        VkBuffer vertBuffers[] = {vertexData->bufferId};
         VkDeviceSize offsets[] = {0}; // byte offset where start to read vertex data from
 // typedef void (VKAPI_PTR *PFN_vkCmdBindVertexBuffers)(VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets);
         vkCmdBindVertexBuffers(buffer->buffers[i],
