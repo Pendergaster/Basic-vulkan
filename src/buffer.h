@@ -1,6 +1,6 @@
 /************************************************************
- * Check license.txt in project root for license information *
- *********************************************************** */
+ * Check license.txt in project root for license information*
+ ************************************************************/
 
 #ifndef BUFFER_H
 #define BUFFER_H
@@ -13,7 +13,6 @@ typedef struct Buffer {
     VkDeviceMemory  bufferMemory;
     size_t          size;
 } Buffer;
-
 
 Buffer
 buffer_create(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize size,
@@ -54,7 +53,7 @@ buffer_create(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize siz
 }
 
 static void
-buffer_copy(Buffer* src, Buffer* dst, VkDevice device, VkCommandPool pool, VkQueue que) {
+buffer_copy(const Buffer* src, const Buffer* dst, VkDevice device, VkCommandPool pool, VkQueue que) {
     // Memory operation are executed using command buffers
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;

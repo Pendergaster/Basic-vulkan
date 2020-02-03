@@ -122,14 +122,14 @@ static void _LOG_COLOR (u32 color,const char* file,const u32 row,FILE* stream,ch
     va_start (args, format);
     fprintf(stream,LOG_STR"%s",COLOR_STRINGS[color] );
     vfprintf (stream,format, args);
-    fprintf(stream,"%s in file : %s:%d \n",ANSI_COLOR_RESET, file, row);
+    fprintf(stream,"%s : %s:%d \n",ANSI_COLOR_RESET, file, row);
 #elif defined(WINDOWS_PLATFORM)
     va_list args;
     va_start (args, format);
     fprintf(stream,LOG_STR);
     vfprintf (stream,format, args);
 
-    fprintf(stream," in file : %s:%d \n", file, row);
+    fprintf(stream," : %s:%d \n", file, row);
 #endif
     fflush(stream);
 
@@ -161,7 +161,7 @@ static void _ASSERT_MESSAGE(u8 condition,const char* condStr,const char* file,co
         va_start (args, format);
         fprintf(stderr,"(%s) ASSERTION FAILED: ",condStr);
         vfprintf (stderr,format, args);
-        fprintf(stderr," in file : %s:%d \n", file, row);
+        fprintf(stderr," : %s:%d \n", file, row);
         fflush(stderr);
 
         va_end (args);
@@ -195,7 +195,7 @@ static void _ABORT(const char* file,const u32 row,char* format,...) {
     va_start (args, format);
     fprintf(stderr,"ERROR OCCURED: ");
     vfprintf (stderr,format, args);
-    fprintf(stderr," in file : %s:%d \n", file, row);
+    fprintf(stderr," : %s:%d \n", file, row);
     fflush(stderr);
 
     va_end (args);
@@ -216,7 +216,7 @@ static void _LOG(const char* file,const u32 row,FILE* stream,char* format,...) {
     va_start (args, format);
     fprintf(stream,LOG_STR);
     vfprintf (stream,format, args);
-    fprintf(stream," in file : %s:%d \n", file, row);
+    fprintf(stream," : %s:%d \n", file, row);
     fflush(stream);
 
     va_end (args);

@@ -5,13 +5,7 @@
 #include "utils.h"
 #include "window.h"
 #include "vulkanContext.h"
-//#include "validationLayers.h"
-//#include "physicalDevice.h"
 #include "logicalDevice.h"
-//#include "swapchain.h"
-//#include "pipeline.h"
-//#include "renderpass.h"
-//#include "frameBuffer.h"
 
 static void init(VulkanContext* context,LogicalDevice* device);
 static void cleanup(VulkanContext* context,LogicalDevice* device);

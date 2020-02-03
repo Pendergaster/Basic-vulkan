@@ -43,7 +43,7 @@ commandpool_create(u32 graphicsFamily, const VkDevice device) {
 
 static void
 commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
-        const VkDevice device, const VkRenderPass renderpass, VkExtent2D swapExtent, VkPipeline gpipeline, VkCommandPool pool, Buffer* vertexData) {
+        const VkDevice device, const VkRenderPass renderpass, VkExtent2D swapExtent, VkPipeline gpipeline, VkCommandPool pool, VertexData* vertexData) {
 
     // Create pool where buffers will be created
     //buffer->pool = _commandpool_create(physicalDevice, device);
@@ -75,17 +75,26 @@ commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
         vkCmdBindPipeline(buffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, gpipeline);
 
         // Bind vertex buffer
-        VkBuffer vertBuffers[] = {vertexData->bufferId};
+        VkBuffer vertBuffers[] = {vertexData->vertex.bufferId};
         VkDeviceSize offsets[] = {0}; // byte offset where start to read vertex data from
-// typedef void (VKAPI_PTR *PFN_vkCmdBindVertexBuffers)(VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets);
+        // typedef void (VKAPI_PTR *PFN_vkCmdBindVertexBuffers)(VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets);
         vkCmdBindVertexBuffers(buffer->buffers[i],
                 0, // firstbinding
                 1, // bindingcount
                 vertBuffers, offsets);
 
+        vkCmdBindIndexBuffer(buffer->buffers[i], vertexData->index.bufferId,
+                0,
+                VK_INDEX_TYPE_UINT32);
 
-        vkCmdDraw(buffer->buffers[i], SIZEOF_ARRAY(Triangle), 1, 0, 0);
 
+        //vkCmdDraw(buffer->buffers[i], SIZEOF_ARRAY(Triangle), 1, 0, 0); no indexes
+
+        vkCmdDrawIndexed(buffer->buffers[i], SIZEOF_ARRAY(RectangleIndexes),
+                1,  // instance count
+                0, // first index
+                0, // vertexoffset
+                0); // first instance
         vkCmdEndRenderPass(buffer->buffers[i]);
 
         if (vkEndCommandBuffer(buffer->buffers[i]) != VK_SUCCESS) {
