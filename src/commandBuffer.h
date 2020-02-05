@@ -11,6 +11,8 @@
 #include "renderpass.h"
 #include "frameBuffer.h"
 #include "vertex.h"
+#include "pipeline.h"
+
 
 typedef struct CommandBuffers {
     //VkCommandPool       pool;
@@ -43,7 +45,8 @@ commandpool_create(u32 graphicsFamily, const VkDevice device) {
 
 static void
 commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
-        const VkDevice device, const VkRenderPass renderpass, VkExtent2D swapExtent, VkPipeline gpipeline, VkCommandPool pool, VertexData* vertexData) {
+        const VkDevice device, const VkRenderPass renderpass, VkExtent2D swapExtent,
+        Pipeline* pipeline, VkCommandPool pool, VertexData* vertexData, VkDescriptorSet* descSets) {
 
     // Create pool where buffers will be created
     //buffer->pool = _commandpool_create(physicalDevice, device);
@@ -72,12 +75,13 @@ commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
         // Begin renderpass
         renderpass_start(renderpass, buffer->buffers[i], framebuffer->buffers[i], swapExtent);
         // Bind graphics pipeline
-        vkCmdBindPipeline(buffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, gpipeline);
+        vkCmdBindPipeline(buffer->buffers[i],
+                VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->graphicsPipeline);
 
         // Bind vertex buffer
         VkBuffer vertBuffers[] = {vertexData->vertex.bufferId};
         VkDeviceSize offsets[] = {0}; // byte offset where start to read vertex data from
-        // typedef void (VKAPI_PTR *PFN_vkCmdBindVertexBuffers)(VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets);
+
         vkCmdBindVertexBuffers(buffer->buffers[i],
                 0, // firstbinding
                 1, // bindingcount
@@ -89,6 +93,15 @@ commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
 
 
         //vkCmdDraw(buffer->buffers[i], SIZEOF_ARRAY(Triangle), 1, 0, 0); no indexes
+
+        // Bind descriptors
+        vkCmdBindDescriptorSets( buffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline->pipelineLayout,
+                0 /*first set*/,
+                1/*desc count*/,
+                &descSets[i],
+                0/*dynamic offset*/,
+                NULL /*dynamic offsets*/);
 
         vkCmdDrawIndexed(buffer->buffers[i], SIZEOF_ARRAY(RectangleIndexes),
                 1,  // instance count

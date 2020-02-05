@@ -6,6 +6,8 @@
 #include "window.h"
 #include "vulkanContext.h"
 #include "logicalDevice.h"
+#include "unistd.h"
+#include "texture.h"
 
 static void init(VulkanContext* context,LogicalDevice* device);
 static void cleanup(VulkanContext* context,LogicalDevice* device);
@@ -54,9 +56,8 @@ main_loop(LogicalDevice* device, VulkanContext* context) {
 static void
 draw_frame(LogicalDevice* device, VulkanContext* context) {
     static u32 currentFrame = 0;
-
     vkWaitForFences(device->device, 1, &device->flightFences[currentFrame], VK_TRUE, UINT64_MAX);
-
+    //sleep(1);
     u32 imageIndex;
     // Get image index
     VkResult res = vkAcquireNextImageKHR(device->device, device->swapchain.swapchain, UINT64_MAX,
@@ -71,9 +72,12 @@ draw_frame(LogicalDevice* device, VulkanContext* context) {
         ABORT("failed to aquire swapchain image");
     }
 
+    uniformbuffer_update(&device->uniformBuffers[imageIndex], &device->ubo, device->device);
+
     if (device->imageFences[imageIndex] != VK_NULL_HANDLE){
         vkWaitForFences(device->device, 1, &device->imageFences[imageIndex], VK_TRUE, UINT64_MAX);
     }
+
     device->imageFences[imageIndex] = device->flightFences[currentFrame];
 
     // Submit command buffer
@@ -97,7 +101,8 @@ draw_frame(LogicalDevice* device, VulkanContext* context) {
 
     vkResetFences(device->device, 1, &device->flightFences[currentFrame]);
 
-    if (vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, device->flightFences[currentFrame]) != VK_SUCCESS) {
+    if (vkQueueSubmit(device->graphicsQueue, 1, &submitInfo,
+                device->flightFences[currentFrame]) != VK_SUCCESS) {
         ABORT("failed to submit draw command buffer!");
     }
 
@@ -119,9 +124,8 @@ draw_frame(LogicalDevice* device, VulkanContext* context) {
         g_resizedWindow = 0;
         LOG("Resizing window");
         logicaldevice_resize(device, &context->physicalDevice, context->surface);
-        return;
-    }
-    else if (res != VK_SUCCESS) {
+        //return;
+    } else if (res != VK_SUCCESS) {
         ABORT("failed to aquire swapchain image");
     }
 

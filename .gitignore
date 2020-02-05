@@ -31,6 +31,10 @@ bld/
 .tags
 tags
 *.spv
+*.jpg
+*.jpeg
+*.taghl
+
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

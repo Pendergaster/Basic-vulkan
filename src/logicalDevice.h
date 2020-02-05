@@ -10,33 +10,45 @@
 #include "physicalDevice.h"
 #include "vulkanExtensions.h"
 #include "swapchain.h"
+#include "uniformobjects.h"
 #include "pipeline.h"
 #include "renderpass.h"
 #include "frameBuffer.h"
 #include "commandBuffer.h"
 #include "vertex.h"
+#include "texture.h"
 
 // Store all needed data about Logical device
 typedef struct LogicalDevice {
-    VkDevice        device;
-    VkQueue         graphicsQueue;
-    VkQueue         presentQueue;
-    SwapChain       swapchain;
-    Pipeline        pipeline;
-    VkRenderPass    renderPass;
-    FrameBuffer     frameBuffer;
-    VkCommandPool   commandPool;
-    CommandBuffers  commandBuffer;
-    VertexData      vertexData;
+    VkDevice            device;
+    VkQueue             graphicsQueue;
+    VkQueue             presentQueue;
+    SwapChain           swapchain;
+    Pipeline            pipeline;
+    VkRenderPass        renderPass;
+    FrameBuffer         frameBuffer;
+    VkCommandPool       commandPool;
+    CommandBuffers      commandBuffer;
+    VertexData          vertexData;
 
     struct {
-        VkSemaphore     *imageSemaphore;
-        VkSemaphore     *renderSemaphore;
+        VkDescriptorPool    descriptorPool;
+        VkDescriptorSet*    descriptorSets;
+    };
+
+    UniformObject       ubo;
+    Buffer*             uniformBuffers;
+
+    struct {
+        VkSemaphore*    imageSemaphore;
+        VkSemaphore*    renderSemaphore;
     };
     struct { // Ensure that we do not refer to same frame that is in flight
-        VkFence* flightFences;
-        VkFence* imageFences;
+        VkFence*        flightFences;
+        VkFence*        imageFences;
     };
+
+    Texture texture;
 } LogicalDevice;
 
 static void _create_semaphores(LogicalDevice* device) {
@@ -85,7 +97,10 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
     LOG("Swapchain created");
     device->renderPass = renderpass_create(&device->swapchain, device->device);
     LOG("Renderpass inited");
-    pipeline_init(&device->pipeline, device->device, device->swapchain.extent, device->renderPass);
+    uniformobject_init(&device->ubo, device->device);
+    LOG("uniform objects created");
+    pipeline_init(&device->pipeline, device->device,
+            device->swapchain.extent, device->renderPass, &device->ubo);
     LOG("Pipeline created");
     framebuffer_init(&device->frameBuffer, device->device, &device->swapchain, device->renderPass);
     LOG("Framebuffer created");
@@ -96,10 +111,23 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
             physicalDevice->physicalDevice, device->commandPool, device->graphicsQueue);
     LOG("Vertex data inited");
 
+    {
+        device->uniformBuffers = uniformbuffers_create(device->swapchain.numImages,
+                device->device, physicalDevice->physicalDevice);
+        LOG("Uniformbuffers created");
+
+        device->descriptorPool = descriptorpool_create(device->swapchain.numImages, device->device);
+        LOG("descriptorpool created");
+        device->descriptorSets = descriptorsets_create( device->descriptorPool, device->device,
+                device->swapchain.numImages, device->ubo.uboLayout, device->uniformBuffers);
+        LOG("descriptorsets created");
+
+    }
+
     commandbuffers_init(&device->commandBuffer,
             &device->frameBuffer, device->device, device->renderPass,
-            device->swapchain.extent, device->pipeline.graphicsPipeline,
-            device->commandPool, &device->vertexData);
+            device->swapchain.extent, &device->pipeline,
+            device->commandPool, &device->vertexData, device->descriptorSets);
 
 
     LOG("Commandbuffers created");
@@ -120,6 +148,12 @@ static void _swapchain_cleanup(LogicalDevice* device) {
     LOG("Disposed pipeline");
     renderpass_dispose(device->renderPass, device->device);
     LOG("Disposed renderpass");
+
+    uniformbuffer_dispose(&device->uniformBuffers, device->swapchain.numImages, device->device);
+    LOG("Disposed uniformbuffers");
+    descriptorpool_dispose(device->descriptorPool, device->device);
+    LOG("Disposed descriptorpool");
+
     swapchain_dispose(&device->swapchain,device->device);
     LOG("Disposed swapchain");
 }
@@ -137,11 +171,19 @@ static void _semaphores_dispose(LogicalDevice* device) {
 
 static void
 logicalDevice_dispose(LogicalDevice* device) {
+
+    printf("********Starting to dispose********\n");
     _swapchain_cleanup(device);
+
     LOG("Disposed swapchain");
 
+    uniformobject_dispose(&device->ubo, device->device);
+    LOG("Disposed uniform object");
+
+    descriptorsets_dispose(device->descriptorSets);
+
     vertexdata_dispose(&device->vertexData, device->device);
-    LOG("vertex buffer disposed");
+    LOG("Diposed vertex buffer");
 
     _semaphores_dispose(device);
     LOG("Disposed semaphores");
@@ -150,7 +192,7 @@ logicalDevice_dispose(LogicalDevice* device) {
     LOG("Disposed commandbuffer");
 
     commandpool_dispose(device->commandPool, device->device);
-    LOG("Disposed commandbuffer");
+    LOG("Disposed commandpool");
 
     // device queues are automaticly disposed when device is disposed
     vkDestroyDevice(device->device, NULL);
@@ -159,7 +201,9 @@ logicalDevice_dispose(LogicalDevice* device) {
 }
 
 
-static void logicaldevice_resize(LogicalDevice* device,const PhysicalDevice* physicalDevice, VkSurfaceKHR surface) {
+static void
+logicaldevice_resize(LogicalDevice* device,const PhysicalDevice* physicalDevice, VkSurfaceKHR surface) {
+
     vkDeviceWaitIdle(device->device);
 
     // cleanup old swapchain
@@ -171,12 +215,25 @@ static void logicaldevice_resize(LogicalDevice* device,const PhysicalDevice* phy
     LOG("Swapchain recreated");
     device->renderPass = renderpass_create(&device->swapchain, device->device);
     LOG("Renderpass recreated");
-    pipeline_init(&device->pipeline, device->device, device->swapchain.extent, device->renderPass);
+    pipeline_init(&device->pipeline, device->device,
+            device->swapchain.extent, device->renderPass, &device->ubo);
     LOG("Pipeline recreated");
     framebuffer_init(&device->frameBuffer, device->device, &device->swapchain, device->renderPass);
     LOG("Framebuffer recreated");
-    commandbuffers_init(&device->commandBuffer, &device->frameBuffer, device->device, device->renderPass,
-            device->swapchain.extent, device->pipeline.graphicsPipeline, device->commandPool, &device->vertexData);
+    device->uniformBuffers = uniformbuffers_create(device->swapchain.numImages,
+            device->device, physicalDevice->physicalDevice);
+    LOG("Uniformbuffers created");
+    device->descriptorPool = descriptorpool_create(device->swapchain.numImages, device->device);
+
+    device->descriptorSets = descriptorsets_create( device->descriptorPool, device->device,
+            device->swapchain.numImages, device->ubo.uboLayout, device->uniformBuffers);
+    LOG("descriptorsets created");
+
+
+    LOG("descriptorpool created");
+    commandbuffers_init(&device->commandBuffer, &device->frameBuffer, device->device,
+            device->renderPass, device->swapchain.extent, &device->pipeline,
+            device->commandPool, &device->vertexData, device->descriptorSets);
     LOG("Commandbuffers recreated");
 }
 

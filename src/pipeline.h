@@ -9,12 +9,13 @@
 #include "utils.h"
 #include "fileutils.h"
 #include "vertex.h"
+#include "uniformobjects.h"
 
 typedef struct Pipeline {
     // Uniforms
-    VkPipelineLayout    pipelineLayout;
+    VkPipelineLayout        pipelineLayout;
     // How pipeline works
-    VkPipeline          graphicsPipeline;
+    VkPipeline              graphicsPipeline;
 } Pipeline;
 
 VkShaderModule
@@ -34,7 +35,7 @@ shadermodule_create(const u8* src,const size_t size, const VkDevice device) {
 }
 
 static void
-pipeline_init(Pipeline* pipeline, const VkDevice device,const VkExtent2D drawExtent,const VkRenderPass renderPass) {
+pipeline_init(Pipeline* pipeline, const VkDevice device,const VkExtent2D drawExtent,const VkRenderPass renderPass, UniformObject* ubo) {
 
     size_t vertSize = 0;
     u8* vert_shader = load_binary_file("shaders/basic_shader_vert.spv",&vertSize);
@@ -74,7 +75,7 @@ pipeline_init(Pipeline* pipeline, const VkDevice device,const VkExtent2D drawExt
     VkVertexInputBindingDescription triangleDesc = triangle_get_binding_description();
     vertexInputInfo.pVertexBindingDescriptions = &triangleDesc;
     vertexInputInfo.vertexAttributeDescriptionCount = 2;
-    TriangleAttributeDescription attrDesc = triangle_get_attribute_descriptions();
+    VertexAttributeDescription attrDesc = vertex_get_attribute_descriptions();
     vertexInputInfo.pVertexAttributeDescriptions = (VkVertexInputAttributeDescription*)&attrDesc;
 
     // Describe what kind of geometry
@@ -142,8 +143,8 @@ pipeline_init(Pipeline* pipeline, const VkDevice device,const VkExtent2D drawExt
     // Create pipeline layout, Here uniforms are defined
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0; // Optional
-    pipelineLayoutInfo.pSetLayouts = NULL; // Optional
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &ubo->uboLayout;
     pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
     pipelineLayoutInfo.pPushConstantRanges = NULL; // Optional
 

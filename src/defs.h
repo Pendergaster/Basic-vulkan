@@ -43,6 +43,7 @@ static const u64 numeric_max_u64 = 0xFFFFFFFFFFFFFFFF;
 
 // NULL pointer should evaluate to 0
 #define SIZEOF_ARRAY(ARR) (sizeof((ARR)) / sizeof(*(ARR)))
+#define MEMBER_SIZE(type, member) sizeof(((type *)0)->member)
 
 // what is the real definition, will never know
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__) || defined(_MSC_VER)

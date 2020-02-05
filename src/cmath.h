@@ -12,8 +12,8 @@
 #include "utils.h"
 
 static const float pi = 3.141592653f;
-static const float deg_to_rad = pi / 180.f;
-static const float rad_to_deg = 180.f / pi;
+static const float deg2rad = pi / 180.f;
+static const float rad2deg = 180.f / pi;
 
 #ifndef MATH_ERROR
 #define MATH_ERROR(error)
@@ -147,10 +147,11 @@ static inline void normalize_inside_vec##n(const vec##n *vec)\
     }\
 }
 
-    DEFINE_VECTOR_FUNCS(2)
-    DEFINE_VECTOR_FUNCS(3)
-DEFINE_VECTOR_FUNCS(4)
+DEFINE_VECTOR_FUNCS(2);
+DEFINE_VECTOR_FUNCS(3);
+DEFINE_VECTOR_FUNCS(4);
 
+static const vec3 world_up = {0,1.f,0};
 
 static inline quat quat_from_axis(const vec3 axis,const float theata)
 {
@@ -225,7 +226,7 @@ typedef struct {
     }\
 }
 
-    CREATE_MATRIX_FUNCTIONS(3)
+CREATE_MATRIX_FUNCTIONS(3)
 CREATE_MATRIX_FUNCTIONS(4)
 
 
@@ -382,6 +383,7 @@ void perspective(mat4* m,float y_fov,float aspect,float n,float f) {
     m->mat[3][2] = -((2.f * f * n) / (f - n));
     m->mat[3][3] = 0.f;
 }
+
 static inline void create_translation_mat_inside(mat4* result, const vec3 v) {
     result->mat[0][0] = 1; result->mat[1][0] = 0; result->mat[2][0] = 0; result->mat[3][0] = v.x;
     result->mat[0][1] = 0; result->mat[1][1] = 1; result->mat[2][1] = 0; result->mat[3][1] = v.y;

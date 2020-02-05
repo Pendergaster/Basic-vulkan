@@ -49,13 +49,13 @@ triangle_get_binding_description() {
     return ret;
 }
 
-typedef struct TriangleAttributeDescription {
+typedef struct VertexAttributeDescription {
     VkVertexInputAttributeDescription pos;
     VkVertexInputAttributeDescription color;
-} TriangleAttributeDescription;
+} VertexAttributeDescription;
 
-static TriangleAttributeDescription triangle_get_attribute_descriptions(){
-    TriangleAttributeDescription desc = {};
+static VertexAttributeDescription vertex_get_attribute_descriptions(){
+    VertexAttributeDescription desc = {};
     desc.pos.binding = 0;
     // Shader slot 1
     desc.pos.location = 0;
