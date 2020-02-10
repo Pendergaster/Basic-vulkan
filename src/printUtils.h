@@ -77,9 +77,9 @@ static void colored_print_init() {
 #define CREATE_COLOR_STRINGS(VOID,VALUE) "\x1b["#VALUE"m",
 
 #define COLOR_TYPES(MODE)\
-	MODE(CONSOLE_COLOR_BLUE, 34)\
-	MODE(CONSOLE_COLOR_GREEN, 32)\
-	MODE(CONSOLE_COLOR_RED, 31)
+    MODE(CONSOLE_COLOR_BLUE, 34)\
+    MODE(CONSOLE_COLOR_GREEN, 32)\
+    MODE(CONSOLE_COLOR_RED, 31)
 
 static const char* COLOR_STRINGS[] = {
     COLOR_TYPES(CREATE_COLOR_STRINGS)
@@ -157,6 +157,18 @@ static void _ASSERT_MESSAGE(u8 condition,const char* condStr,const char* file,co
             SetConsoleTextAttribute(consoleHandle, CONSOLE_COLOR_RED);
         }
 #endif
+
+
+
+
+#if defined(LINUX_PLATFORM)
+        va_list args;
+        va_start (args, format);
+        fprintf(stderr,"ASSERTION FAILED %s %s ",COLOR_STRINGS[CONSOLE_COLOR_RED], condStr );
+        vfprintf (stderr,format, args);
+        fprintf(stderr,"%s : %s:%d \n",ANSI_COLOR_RESET, file, row);
+#elif defined(WINDOWS_PLATFORM)
+
         va_list args;
         va_start (args, format);
         fprintf(stderr,"(%s) ASSERTION FAILED: ",condStr);
@@ -165,8 +177,10 @@ static void _ASSERT_MESSAGE(u8 condition,const char* condStr,const char* file,co
         fflush(stderr);
 
         va_end (args);
-        // set state back
-        _Exit(1);
+
+
+#endif
+
 
 #if defined(WINDOWS_PLATFORM)
         if(NULL != consoleHandle) {
@@ -191,6 +205,15 @@ static void _ABORT(const char* file,const u32 row,char* format,...) {
     }
 #endif
 
+
+
+#if defined(LINUX_PLATFORM)
+    va_list args;
+    va_start (args, format);
+    fprintf(stderr,"ERROR OCCURED %s",COLOR_STRINGS[CONSOLE_COLOR_RED] );
+    vfprintf (stderr,format, args);
+    fprintf(stderr,"%s : %s:%d \n",ANSI_COLOR_RESET, file, row);
+#elif defined(WINDOWS_PLATFORM)
     va_list args;
     va_start (args, format);
     fprintf(stderr,"ERROR OCCURED: ");
@@ -200,6 +223,9 @@ static void _ABORT(const char* file,const u32 row,char* format,...) {
 
     va_end (args);
     // set state back
+#endif
+
+
 
 #if defined(WINDOWS_PLATFORM)
     if(NULL != consoleHandle) {
@@ -223,6 +249,7 @@ static void _LOG(const char* file,const u32 row,FILE* stream,char* format,...) {
 }
 
 
+//TODO remove ycm ignore
 
 #endif //COLORPRINT_H
 

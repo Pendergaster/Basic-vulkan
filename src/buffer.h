@@ -41,7 +41,7 @@ buffer_create(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize siz
     allocInfo.allocationSize = requirements.size;
     allocInfo.memoryTypeIndex = physicaldevice_find_memorytype(
             physicalDevice, requirements.memoryTypeBits,
-            properties); // copy data immidiately after unmap
+            properties);
 
     if(vkAllocateMemory(device, &allocInfo, NULL /*allocator*/, &ret.bufferMemory) != VK_SUCCESS) {
         ABORT("Failed to allocate buffer");

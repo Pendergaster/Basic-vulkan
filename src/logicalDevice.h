@@ -95,15 +95,20 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
     swapchain_init(&device->swapchain, physicalDevice->physicalDevice,
             surface, physicalDevice->queues,device->device);
     LOG("Swapchain created");
+
     device->renderPass = renderpass_create(&device->swapchain, device->device);
     LOG("Renderpass inited");
+
     uniformobject_init(&device->ubo, device->device);
     LOG("uniform objects created");
+
     pipeline_init(&device->pipeline, device->device,
-            device->swapchain.extent, device->renderPass, &device->ubo);
+            device->swapchain.extent, device->renderPass, device->ubo.uboLayout);
     LOG("Pipeline created");
+
     framebuffer_init(&device->frameBuffer, device->device, &device->swapchain, device->renderPass);
     LOG("Framebuffer created");
+
     device->commandPool = commandpool_create(physicalDevice->queues.graphicsFamily, device->device);
     LOG("Commandpool created");
 
@@ -111,18 +116,21 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
             physicalDevice->physicalDevice, device->commandPool, device->graphicsQueue);
     LOG("Vertex data inited");
 
-    {
-        device->uniformBuffers = uniformbuffers_create(device->swapchain.numImages,
-                device->device, physicalDevice->physicalDevice);
-        LOG("Uniformbuffers created");
+    device->texture = texture_create("textures/statue.jpg", physicalDevice->physicalDevice,
+            device->device, device->commandPool, device->graphicsQueue);
+    LOG("Texture loaded and created");
 
-        device->descriptorPool = descriptorpool_create(device->swapchain.numImages, device->device);
-        LOG("descriptorpool created");
-        device->descriptorSets = descriptorsets_create( device->descriptorPool, device->device,
-                device->swapchain.numImages, device->ubo.uboLayout, device->uniformBuffers);
-        LOG("descriptorsets created");
+    device->uniformBuffers = uniformbuffers_create(device->swapchain.numImages,
+            device->device, physicalDevice->physicalDevice);
+    LOG("Uniformbuffers created");
 
-    }
+    device->descriptorPool = descriptorpool_create(device->swapchain.numImages, device->device);
+    LOG("descriptorpool created");
+
+    device->descriptorSets = descriptorsets_create( device->descriptorPool, device->device,
+            device->swapchain.numImages, device->ubo.uboLayout, device->uniformBuffers, &device->texture);
+    LOG("descriptorsets created");
+
 
     commandbuffers_init(&device->commandBuffer,
             &device->frameBuffer, device->device, device->renderPass,
@@ -172,7 +180,6 @@ static void _semaphores_dispose(LogicalDevice* device) {
 static void
 logicalDevice_dispose(LogicalDevice* device) {
 
-    printf("********Starting to dispose********\n");
     _swapchain_cleanup(device);
 
     LOG("Disposed swapchain");
@@ -184,6 +191,8 @@ logicalDevice_dispose(LogicalDevice* device) {
 
     vertexdata_dispose(&device->vertexData, device->device);
     LOG("Diposed vertex buffer");
+
+    texture_dispose(&device->texture, device->device);
 
     _semaphores_dispose(device);
     LOG("Disposed semaphores");
@@ -204,6 +213,7 @@ logicalDevice_dispose(LogicalDevice* device) {
 static void
 logicaldevice_resize(LogicalDevice* device,const PhysicalDevice* physicalDevice, VkSurfaceKHR surface) {
 
+    LOG_COLOR(CONSOLE_COLOR_BLUE, "Resizing window");
     vkDeviceWaitIdle(device->device);
 
     // cleanup old swapchain
@@ -216,7 +226,7 @@ logicaldevice_resize(LogicalDevice* device,const PhysicalDevice* physicalDevice,
     device->renderPass = renderpass_create(&device->swapchain, device->device);
     LOG("Renderpass recreated");
     pipeline_init(&device->pipeline, device->device,
-            device->swapchain.extent, device->renderPass, &device->ubo);
+            device->swapchain.extent, device->renderPass, device->ubo.uboLayout);
     LOG("Pipeline recreated");
     framebuffer_init(&device->frameBuffer, device->device, &device->swapchain, device->renderPass);
     LOG("Framebuffer recreated");
@@ -226,7 +236,7 @@ logicaldevice_resize(LogicalDevice* device,const PhysicalDevice* physicalDevice,
     device->descriptorPool = descriptorpool_create(device->swapchain.numImages, device->device);
 
     device->descriptorSets = descriptorsets_create( device->descriptorPool, device->device,
-            device->swapchain.numImages, device->ubo.uboLayout, device->uniformBuffers);
+            device->swapchain.numImages, device->ubo.uboLayout, device->uniformBuffers, &device->texture);
     LOG("descriptorsets created");
 
 
@@ -235,6 +245,7 @@ logicaldevice_resize(LogicalDevice* device,const PhysicalDevice* physicalDevice,
             device->renderPass, device->swapchain.extent, &device->pipeline,
             device->commandPool, &device->vertexData, device->descriptorSets);
     LOG("Commandbuffers recreated");
+    LOG_COLOR(CONSOLE_COLOR_BLUE, "Done resizing window");
 }
 
 #endif //LOGICALDEVICE_H

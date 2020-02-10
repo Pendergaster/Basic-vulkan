@@ -68,6 +68,7 @@ _is_device_suitable(const VkPhysicalDevice device,const VkSurfaceKHR surface) {
     return (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ||
             deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) &&
         deviceFeatures.geometryShader &&
+        deviceFeatures.samplerAnisotropy &&
         extensionsSupported &&
         swapChainSupported &&
         _verify_queueFamilyIndices(&families);
@@ -134,6 +135,8 @@ physicaldevice_create_logicaldevice(const PhysicalDevice* physicalDevice) {
 
     // specify what device features we are using
     VkPhysicalDeviceFeatures deviceFeatures = {};
+    deviceFeatures.samplerAnisotropy = VK_TRUE; //enable anisotrophic filtering
+
     LOG("initialized %d unique queue(s), graphics queue %d and presentation queue %d",
             numIndexes,physicalDevice->queues.graphicsFamily,physicalDevice->queues.presentFamily);
 

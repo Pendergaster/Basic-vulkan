@@ -116,15 +116,54 @@ commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
     }
 }
 
-static void commandpool_dispose(VkCommandPool pool, const VkDevice device) {
+static void
+commandpool_dispose(VkCommandPool pool, const VkDevice device) {
 
     vkDestroyCommandPool(device, pool, NULL);
 }
 
-static void commandbuffers_dispose(CommandBuffers* buffer) {
+static void
+commandbuffers_dispose(CommandBuffers* buffer) {
 
     free(buffer->buffers);
     memset(buffer, 0, sizeof *buffer);
+}
+
+static VkCommandBuffer
+commandbuffer_begin_single_time(VkDevice device, VkCommandPool pool) {
+
+    VkCommandBufferAllocateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    info.commandBufferCount = 1;
+    info.commandPool = pool;
+
+    VkCommandBuffer ret;
+    vkAllocateCommandBuffers(device, &info, &ret);
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(ret, &beginInfo);
+    return ret;
+}
+
+static void
+commandbuffer_end_single_time(VkDevice device, VkCommandBuffer cmd, VkCommandPool pool,
+        VkQueue graphicsQueue) {
+
+    vkEndCommandBuffer(cmd);
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+
+    vkQueueSubmit(graphicsQueue, 1 /*count*/, &submitInfo, VK_NULL_HANDLE /*fence*/);
+    vkQueueWaitIdle(graphicsQueue);
+
+    vkFreeCommandBuffers(device, pool, 1 /*count*/, &cmd);
 }
 
 // TODO cleanup function argumets

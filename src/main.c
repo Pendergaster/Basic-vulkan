@@ -6,7 +6,6 @@
 #include "window.h"
 #include "vulkanContext.h"
 #include "logicalDevice.h"
-#include "unistd.h"
 #include "texture.h"
 
 static void init(VulkanContext* context,LogicalDevice* device);
@@ -57,14 +56,12 @@ static void
 draw_frame(LogicalDevice* device, VulkanContext* context) {
     static u32 currentFrame = 0;
     vkWaitForFences(device->device, 1, &device->flightFences[currentFrame], VK_TRUE, UINT64_MAX);
-    //sleep(1);
     u32 imageIndex;
     // Get image index
     VkResult res = vkAcquireNextImageKHR(device->device, device->swapchain.swapchain, UINT64_MAX,
             device->imageSemaphore[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
     if (res == VK_ERROR_OUT_OF_DATE_KHR) { // Resized and not avaivable
-        LOG("Resizing window");
         logicaldevice_resize(device, &context->physicalDevice, context->surface);
         return;
     }
@@ -137,6 +134,7 @@ draw_frame(LogicalDevice* device, VulkanContext* context) {
 static void
 cleanup(VulkanContext* context, LogicalDevice* device) {
 
+    LOG_COLOR(CONSOLE_COLOR_BLUE,"********Starting to dispose********");
     logicalDevice_dispose(device);
     vulkancontext_dispose(context);
     dispose_window();

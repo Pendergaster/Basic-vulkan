@@ -12,6 +12,7 @@
 typedef struct Vertex {
     vec2    pos;
     vec3    color;
+    vec2    uv;
 } Vertex;
 
 typedef struct VertexData {
@@ -19,17 +20,19 @@ typedef struct VertexData {
     Buffer index;
 } VertexData;
 
+// TODO cleanup
+#if 0
 static const Vertex Triangle[] = {
     {.pos = {0.0f ,-0.5f }, .color = {1.f , 0.f, 0.f}},
     {.pos = {0.5f , 0.5f }, .color = {0.2f , 0.2f, 0.2f}},
     {.pos = {-0.5f, 0.5f }, .color = {0.f , 0.f, 1.f}},
 };
-
+#endif
 static const Vertex Rectangle[] = {
-    {.pos = {-0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-    {.pos = {0.5f, -0.5f},  .color = {0.0f, 1.0f, 0.0f}},
-    {.pos = {0.5f, 0.5f},   .color = {0.0f, 0.0f, 1.0f}},
-    {.pos = {-0.5f, 0.5f},  .color = {1.0f, 1.0f, 1.0f}}
+    {.pos = {-0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}, .uv = {1.0f, 0.0f}},
+    {.pos = {0.5f, -0.5f},  .color = {0.0f, 1.0f, 0.0f}, .uv = {0.0f, 0.0f}},
+    {.pos = {0.5f, 0.5f},   .color = {0.0f, 0.0f, 1.0f}, .uv = {0.0f, 1.0f}},
+    {.pos = {-0.5f, 0.5f},  .color = {1.0f, 1.0f, 1.0f}, .uv = {1.0f, 1.0f}}
 };
 
 static const u32 RectangleIndexes[] = {
@@ -52,6 +55,7 @@ triangle_get_binding_description() {
 typedef struct VertexAttributeDescription {
     VkVertexInputAttributeDescription pos;
     VkVertexInputAttributeDescription color;
+    VkVertexInputAttributeDescription uv;
 } VertexAttributeDescription;
 
 static VertexAttributeDescription vertex_get_attribute_descriptions(){
@@ -71,6 +75,14 @@ static VertexAttributeDescription vertex_get_attribute_descriptions(){
     desc.color.format = VK_FORMAT_R32G32B32_SFLOAT;
     // Offset in struct
     desc.color.offset = offsetof(Vertex, color);
+
+    desc.uv.binding = 0;
+    // Shader slot 2
+    desc.uv.location = 2;
+    // vec3
+    desc.uv.format = VK_FORMAT_R32G32_SFLOAT;
+    // Offset in struct
+    desc.uv.offset = offsetof(Vertex, uv);
 
     return desc;
 };

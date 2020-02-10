@@ -1,6 +1,7 @@
 /************************************************************
  * Check license.txt in project root for license information *
  *********************************************************** */
+
 #ifndef UNIFORMOBJECTS_H
 #define UNIFORMOBJECTS_H
 
@@ -8,6 +9,7 @@
 #include "utils.h"
 #include "buffer.h"
 #include "swapchain.h"
+#include "texture.h"
 
 typedef struct UniformObject {
     VkDescriptorSetLayout   uboLayout;
@@ -21,19 +23,33 @@ typedef struct UniformObject {
 static void
 uniformobject_init(UniformObject *object, VkDevice device) {
 
-    // Where object is bound
+    // Where matrixes are bound
     VkDescriptorSetLayoutBinding uboBinding = {};
-    uboBinding.binding = 0; // 0 position
-    uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboBinding.descriptorCount = 1;
-    // only accessed from vertex shader
-    uboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    {
+        uboBinding.binding = 0; // 0 position
+        uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboBinding.descriptorCount = 1;
+        // only accessed from vertex shader
+        uboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    }
+
+    // Where texture sampler is bound
+    VkDescriptorSetLayoutBinding samplerBinding = {};
+    {
+        samplerBinding.binding = 1; // 1 position
+        samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerBinding.descriptorCount = 1;
+        // only accessed from vertex shader
+        samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    }
+
+    VkDescriptorSetLayoutBinding bindings[] =  {uboBinding, samplerBinding};
 
     // Create object
     VkDescriptorSetLayoutCreateInfo layout = {};
     layout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layout.bindingCount = 1;
-    layout.pBindings = &uboBinding;
+    layout.bindingCount = SIZEOF_ARRAY(bindings);
+    layout.pBindings = bindings;
 
     if(vkCreateDescriptorSetLayout(device, &layout,
                 NULL /*allocator*/,
@@ -121,15 +137,18 @@ uniformbuffer_update(Buffer* buffer, UniformObject* object, VkDevice device) {
 static VkDescriptorPool
 descriptorpool_create(u32 numImages, VkDevice device) {
 
-    // Size of the pool (one desc per frame)
-    VkDescriptorPoolSize size = {};
-    size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    size.descriptorCount = numImages;
+    // Size of the pool (two desc per frame)
+    VkDescriptorPoolSize sizes[2] = {0};
+    sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    sizes[0].descriptorCount = numImages;
+
+    sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    sizes[1].descriptorCount = numImages;
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &size;
+    poolInfo.poolSizeCount = SIZEOF_ARRAY(sizes);
+    poolInfo.pPoolSizes = sizes;
     // Max desc to allocate
     poolInfo.maxSets = numImages;
 
@@ -148,7 +167,7 @@ descriptorpool_dispose(VkDescriptorPool pool, VkDevice device) {
 
 static VkDescriptorSet*
 descriptorsets_create(VkDescriptorPool pool, VkDevice device,
-        u32 numImages, VkDescriptorSetLayout layout, Buffer* uniformBuffers) {
+        u32 numImages, VkDescriptorSetLayout layout, Buffer* uniformBuffers, const Texture* tex) {
 
     VkDescriptorSet* ret = malloc(sizeof(VkDescriptorSet) * numImages);
     VkDescriptorSetLayout* layouts = malloc(sizeof(VkDescriptorSetLayout) * numImages);
@@ -167,23 +186,37 @@ descriptorsets_create(VkDescriptorPool pool, VkDevice device,
         ABORT("Failed to allocate description sets");
     }
 
-    // populate descs
+    // populate matrix desc
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.range = MEMBER_SIZE(UniformObject, data);
 
-    // write information
-    VkWriteDescriptorSet write = {};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.descriptorCount = 1;
-    write.pBufferInfo = &bufferInfo;
+    // populate matrix desc
+    VkDescriptorImageInfo imageInfo = {};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = tex->view;
+    imageInfo.sampler = tex->sampler;
+
+    // write information for both descriptors
+    VkWriteDescriptorSet writes[2] = {0};
+    writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    writes[0].descriptorCount = 1;
+    writes[0].dstBinding = 0;
+    writes[0].pBufferInfo = &bufferInfo;
+
+    writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writes[1].descriptorCount = 1;
+    writes[1].dstBinding = 1;
+    writes[1].pImageInfo = &imageInfo;
 
     // for each set
     for(u32 i = 0; i < numImages; i++) {
         bufferInfo.buffer = uniformBuffers[i].bufferId;
-        write.dstSet = ret[i];
+        writes[0].dstSet = ret[i];
+        writes[1].dstSet = ret[i];
 
-        vkUpdateDescriptorSets(device, 1, &write, 0 /*copy count*/, NULL /*copies*/);
+        vkUpdateDescriptorSets(device, SIZEOF_ARRAY(writes), writes, 0 /*copy count*/, NULL /*copies*/);
     }
 
     free(layouts);
