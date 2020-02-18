@@ -85,7 +85,8 @@ static VkInstance _create_instace() {
     return ret;
 }
 
-static void vulkancontext_init(VulkanContext* context) {
+static void
+vulkancontext_init(VulkanContext* context) {
     context->instance = _create_instace();
 
     if (enableValidationLayers) {
@@ -95,11 +96,12 @@ static void vulkancontext_init(VulkanContext* context) {
     LOG("Vulkan context initialized");
     window_create_surface(context->instance,&context->surface);
     LOG("Window surface created");
-    physical_device_pick(context->instance,&context->physicalDevice,context->surface);
+    physical_device_pick(context->instance,&context->physicalDevice, context->surface);
     LOG("Physical device picked");
 }
 
-static void vulkancontext_dispose(VulkanContext* context) {
+static void
+vulkancontext_dispose(VulkanContext* context) {
 
     vkDestroySurfaceKHR(context->instance, context->surface, NULL);
     LOG("Surface disposed");

@@ -125,7 +125,7 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
             physicalDevice->physicalDevice, device->commandPool, device->graphicsQueue);
     LOG("Vertex data inited");
 
-    device->texture = texture_load_and_create("textures/statue.jpg", physicalDevice->physicalDevice,
+    device->texture = texture_load_and_create("textures/chalet.jpg", physicalDevice->physicalDevice,
             device->device, device->commandPool, device->graphicsQueue);
     LOG("Texture loaded and created");
 

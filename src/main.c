@@ -5,8 +5,10 @@
 #include "utils.h"
 #include "window.h"
 #include "vulkanContext.h"
+#include "physicalDevice.h"
 #include "logicalDevice.h"
-#include "texture.h"
+#include "objload.h"
+
 
 static void init(VulkanContext* context,LogicalDevice* device);
 static void cleanup(VulkanContext* context,LogicalDevice* device);

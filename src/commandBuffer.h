@@ -101,7 +101,7 @@ commandbuffers_init(CommandBuffers* buffer, const FrameBuffer* framebuffer,
                 0/*dynamic offset*/,
                 NULL /*dynamic offsets*/);
 
-        vkCmdDrawIndexed(buffer->buffers[i], SIZEOF_ARRAY(RectangleIndexes),
+        vkCmdDrawIndexed(buffer->buffers[i], vertexData->numIndexes,
                 1,  // instance count
                 0, // first index
                 0, // vertexoffset

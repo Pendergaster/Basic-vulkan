@@ -7,27 +7,14 @@
 #include <vulkan/vulkan.h>
 #include "buffer.h"
 #include "cmath.h"
-
-
-typedef struct Vertex {
-    vec3    pos;
-    vec3    color;
-    vec2    uv;
-} Vertex;
+#include "objload.h"
 
 typedef struct VertexData {
-    Buffer vertex;
-    Buffer index;
+    Buffer  vertex;
+    Buffer  index;
+    u32     numIndexes;
 } VertexData;
 
-// TODO cleanup
-#if 0
-static const Vertex Triangle[] = {
-    {.pos = {0.0f ,-0.5f }, .color = {1.f , 0.f, 0.f}},
-    {.pos = {0.5f , 0.5f }, .color = {0.2f , 0.2f, 0.2f}},
-    {.pos = {-0.5f, 0.5f }, .color = {0.f , 0.f, 1.f}},
-};
-#endif
 static const Vertex Rectangle[] = {
     {.pos = {-0.5f, -0.5f, 0}, .color = {1.0f, 0.0f, 0.0f}, .uv = {1.0f, 0.0f}},
     {.pos = {0.5f, -0.5f, 0},  .color = {0.0f, 1.0f, 0.0f}, .uv = {0.0f, 0.0f}},
@@ -100,8 +87,10 @@ vertexdata_init(VertexData* data, VkDevice device, VkPhysicalDevice physicalDevi
 
     //Crate vertex buffer
 
+    VertexLoadData verts = obj_load("models/chalet.obj");
+    data->numIndexes = verts.numIndexes;
     void* memData;
-    u32 vertexSize = sizeof *Rectangle * SIZEOF_ARRAY(Rectangle);
+    u32 vertexSize = sizeof *verts.vertexes * verts.numVertexes;
     Buffer stagingBuffer = {};
 
     // use staging buffer as source buffer and move its data to actual vertexbuffer as source buffer
@@ -116,7 +105,7 @@ vertexdata_init(VertexData* data, VkDevice device, VkPhysicalDevice physicalDevi
             vertexSize,
             0, // memorymap flags
             &memData);
-    memcpy(memData, Rectangle, vertexSize);
+    memcpy(memData, verts.vertexes, vertexSize);
     // unmapping starts copying mempry to buffer
     vkUnmapMemory(device, stagingBuffer.bufferMemory);
 
@@ -132,7 +121,7 @@ vertexdata_init(VertexData* data, VkDevice device, VkPhysicalDevice physicalDevi
     buffer_dispose(&stagingBuffer, device);
 
     // Create index buffer
-    u32 indexSize = sizeof *RectangleIndexes * SIZEOF_ARRAY(RectangleIndexes);
+    u32 indexSize = sizeof *verts.indexes * verts.numIndexes;
     stagingBuffer = buffer_create(physicalDevice, device,
             indexSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, // usage
@@ -144,7 +133,7 @@ vertexdata_init(VertexData* data, VkDevice device, VkPhysicalDevice physicalDevi
             indexSize,
             0, // memorymap flags
             &memData);
-    memcpy(memData, RectangleIndexes, indexSize);
+    memcpy(memData, verts.indexes , indexSize);
     vkUnmapMemory(device, stagingBuffer.bufferMemory);
 
     data->index = buffer_create(physicalDevice, device,
