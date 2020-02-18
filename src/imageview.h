@@ -7,7 +7,8 @@
 #include <vulkan/vulkan.h>
 #include "utils.h"
 
-static VkImageView imageview_create(const VkImage image, VkFormat format,const VkDevice device) {
+static VkImageView imageview_create(const VkImage image, VkFormat format, VkImageAspectFlags aspectFlag,
+        const VkDevice device) {
     VkImageView ret = 0;
 
     VkImageViewCreateInfo createInfo = {};
@@ -23,7 +24,7 @@ static VkImageView imageview_create(const VkImage image, VkFormat format,const V
     createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
     createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 
-    createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    createInfo.subresourceRange.aspectMask = aspectFlag;
     createInfo.subresourceRange.baseMipLevel = 0;
     createInfo.subresourceRange.levelCount = 1;
     createInfo.subresourceRange.baseArrayLayer = 0;

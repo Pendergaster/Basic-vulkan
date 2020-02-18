@@ -10,7 +10,7 @@
 
 
 typedef struct Vertex {
-    vec2    pos;
+    vec3    pos;
     vec3    color;
     vec2    uv;
 } Vertex;
@@ -29,14 +29,20 @@ static const Vertex Triangle[] = {
 };
 #endif
 static const Vertex Rectangle[] = {
-    {.pos = {-0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}, .uv = {1.0f, 0.0f}},
-    {.pos = {0.5f, -0.5f},  .color = {0.0f, 1.0f, 0.0f}, .uv = {0.0f, 0.0f}},
-    {.pos = {0.5f, 0.5f},   .color = {0.0f, 0.0f, 1.0f}, .uv = {0.0f, 1.0f}},
-    {.pos = {-0.5f, 0.5f},  .color = {1.0f, 1.0f, 1.0f}, .uv = {1.0f, 1.0f}}
+    {.pos = {-0.5f, -0.5f, 0}, .color = {1.0f, 0.0f, 0.0f}, .uv = {1.0f, 0.0f}},
+    {.pos = {0.5f, -0.5f, 0},  .color = {0.0f, 1.0f, 0.0f}, .uv = {0.0f, 0.0f}},
+    {.pos = {0.5f, 0.5f, 0},   .color = {0.0f, 0.0f, 1.0f}, .uv = {0.0f, 1.0f}},
+    {.pos = {-0.5f, 0.5f, 0},  .color = {1.0f, 1.0f, 1.0f}, .uv = {1.0f, 1.0f}},
+
+    {.pos = {-0.5f, -0.5f, -0.5f}, .color =  {1.0f, 0.0f, 0.0f}, .uv = {0.0f, 0.0f}},
+    {.pos = {0.5f, -0.5f, -0.5f},  .color =  {0.0f, 1.0f, 0.0f}, .uv = {1.0f, 0.0f}},
+    {.pos = {0.5f, 0.5f, -0.5f},   .color =  {0.0f, 0.0f, 1.0f}, .uv = {1.0f, 1.0f}},
+    {.pos = {-0.5f, 0.5f, -0.5f},  .color =  {1.0f, 1.0f, 1.0f}, .uv = {0.0f, 1.0f}}
 };
 
 static const u32 RectangleIndexes[] = {
-    0, 1, 2, 2, 3, 0
+    0, 1, 2, 2, 3, 0,
+    4, 5, 6, 6, 7, 4
 };
 
 static VkVertexInputBindingDescription
@@ -64,7 +70,7 @@ static VertexAttributeDescription vertex_get_attribute_descriptions(){
     // Shader slot 1
     desc.pos.location = 0;
     // vec2
-    desc.pos.format = VK_FORMAT_R32G32_SFLOAT;
+    desc.pos.format = VK_FORMAT_R32G32B32_SFLOAT;
     // Offset in struct
     desc.pos.offset = offsetof(Vertex, pos);
 

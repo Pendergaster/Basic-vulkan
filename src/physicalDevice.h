@@ -4,17 +4,65 @@
 
 #ifndef PHYSICALDEVICE_H
 #define PHYSICALDEVICE_H
+
 #include <vulkan/vulkan.h>
 #include "utils.h"
 #include "queueIndexes.h"
 #include "vulkanExtensions.h"
-#include "swapchain.h"
+// #include "swapchain.h"
 
 // Store all needed data about physical device
 typedef struct PhysicalDevice {
     VkPhysicalDevice            physicalDevice;
     QueueFamilyIndices          queues;
 } PhysicalDevice;
+
+typedef struct SwapchainSupportDetails {
+    VkSurfaceCapabilitiesKHR    capabilities;
+    u32                         numFormats;
+    VkSurfaceFormatKHR*         formats;
+    u32                         numPresentationModes;
+    VkPresentModeKHR*           presentModes;
+} SwapchainSupportDetails;
+
+
+static SwapchainSupportDetails physicaldevice_get_swapchain_support_details(const VkPhysicalDevice device,
+        const VkSurfaceKHR surface) {
+    SwapchainSupportDetails details = {};
+
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details.numFormats, NULL);
+    //query format details
+    if (details.numFormats != 0) {
+        details.formats = (VkSurfaceFormatKHR*)malloc(details.numFormats * sizeof details.formats);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details.numFormats, details.formats);
+    }
+
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details.numPresentationModes, NULL);
+    // query present modes
+    if (details.numPresentationModes != 0) {
+        details.presentModes =
+            (VkPresentModeKHR*)malloc(details.numPresentationModes * sizeof details.presentModes);
+
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details.numPresentationModes,
+                details.presentModes);
+    }
+
+    return details;
+}
+
+
+static void physicaldevice_dispose_swapchain_support_details(SwapchainSupportDetails* details) {
+    if(details->formats) {
+        free(details->formats);
+    }
+    if(details->presentModes) {
+        free(details->presentModes);
+    }
+    memset(details,0,sizeof(SwapchainSupportDetails));
+}
+
 
 static u8
 _check_device_extension_support(VkPhysicalDevice device) {
@@ -58,9 +106,11 @@ _is_device_suitable(const VkPhysicalDevice device,const VkSurfaceKHR surface) {
     u8 extensionsSupported = _check_device_extension_support(device);
     u8 swapChainSupported = 0;
     if (extensionsSupported) {
-        SwapchainSupportDetails swapchainSupport = swapchain_get_support_details(device,surface);
+        SwapchainSupportDetails swapchainSupport =
+            physicaldevice_get_swapchain_support_details(device,surface);
+
         swapChainSupported = swapchainSupport.numFormats && swapchainSupport.numPresentationModes;
-        swapchain_dispose_support_details(&swapchainSupport);
+        physicaldevice_dispose_swapchain_support_details(&swapchainSupport);
     }
 
     // integrated or discreate and can use geometry shader
@@ -182,5 +232,40 @@ physicaldevice_find_memorytype(VkPhysicalDevice device,u32 typeFilter, VkMemoryP
     ABORT("failed to find suitable memory type");
     return 0;
 }
+
+static VkFormat
+physicaldevice_find_supported_format(VkPhysicalDevice device, VkFormat* formats, u32 numFormats,
+        VkImageTiling tiling, VkFormatFeatureFlags features) {
+
+    VkFormatProperties properties;
+    for(u32 i = 0; i < numFormats; i++) {
+        vkGetPhysicalDeviceFormatProperties(device, formats[i],&properties);
+
+        if(tiling == VK_IMAGE_TILING_LINEAR &&
+                ( properties.linearTilingFeatures & features) == features) {
+            return formats[i];
+        } else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
+                ( properties.optimalTilingFeatures & features) == features) {
+            return formats[i];
+        }
+    }
+
+    ABORT("Failed to find suitable image format");
+    return (VkFormat) {0};
+}
+
+static VkFormat physicaldevice_find_depth_format(VkPhysicalDevice physicalDevice) {
+
+    VkFormat formatOptions[] = {
+        VK_FORMAT_D32_SFLOAT,
+        VK_FORMAT_D32_SFLOAT_S8_UINT,
+        VK_FORMAT_D24_UNORM_S8_UINT};
+
+    return physicaldevice_find_supported_format(physicalDevice,
+            formatOptions, SIZEOF_ARRAY(formatOptions),
+            VK_IMAGE_TILING_OPTIMAL,  VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+}
+
 
 #endif //PHYSICALDEVICE_H

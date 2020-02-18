@@ -13,9 +13,7 @@
 #include "vertex.h"
 #include "pipeline.h"
 
-
 typedef struct CommandBuffers {
-    //VkCommandPool       pool;
     VkCommandBuffer*    buffers;
     u32                 numBuffers;
 } CommandBuffers;

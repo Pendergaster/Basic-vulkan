@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.h>
 #include "utils.h"
 #include "swapchain.h"
+#include "texture.h"
 
 typedef struct FrameBuffer {
     VkFramebuffer*  buffers;
@@ -15,19 +16,20 @@ typedef struct FrameBuffer {
 } FrameBuffer;
 
 static void
-framebuffer_init(FrameBuffer* buffer, const VkDevice device, const SwapChain* swapChain, VkRenderPass renderPass) {
+framebuffer_init(FrameBuffer* buffer, const VkDevice device,
+        const SwapChain* swapChain, VkRenderPass renderPass, VkImageView depthView) {
 
     buffer->buffers = (VkFramebuffer*)malloc(sizeof *buffer->buffers * swapChain->numImages);
     buffer->numBuffers = swapChain->numImages;
 
     // Create Framebuffer for each image in swap chain
     for (u32 i = 0; i < swapChain->numImages; i++) {
-        VkImageView* attachments = &swapChain->views[i];
+        VkImageView attachments[] = {swapChain->views[i] , depthView };
 
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = renderPass;
-        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.attachmentCount = SIZEOF_ARRAY(attachments);
         framebufferInfo.pAttachments = attachments;
         framebufferInfo.width = swapChain->extent.width;
         framebufferInfo.height = swapChain->extent.height;

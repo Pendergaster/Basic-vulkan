@@ -11,14 +11,7 @@
 #include "queueIndexes.h"
 #include "cmath.h"
 #include "imageview.h"
-
-typedef struct SwapchainSupportDetails {
-    VkSurfaceCapabilitiesKHR    capabilities;
-    u32                         numFormats;
-    VkSurfaceFormatKHR*         formats;
-    u32                         numPresentationModes;
-    VkPresentModeKHR*           presentModes;
-} SwapchainSupportDetails;
+#include "physicalDevice.h"
 
 typedef struct SwapChain {
     VkSwapchainKHR  swapchain;
@@ -30,40 +23,6 @@ typedef struct SwapChain {
 } SwapChain ;
 
 
-static SwapchainSupportDetails swapchain_get_support_details(const VkPhysicalDevice device,const VkSurfaceKHR surface) {
-    SwapchainSupportDetails details = {};
-
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
-
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details.numFormats, NULL);
-    //query format details
-    if (details.numFormats != 0) {
-        details.formats = (VkSurfaceFormatKHR*)malloc(details.numFormats * sizeof details.formats);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details.numFormats, details.formats);
-    }
-
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details.numPresentationModes, NULL);
-    // query present modes
-    if (details.numPresentationModes != 0) {
-        details.presentModes =
-            (VkPresentModeKHR*)malloc(details.numPresentationModes * sizeof details.presentModes);
-
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details.numPresentationModes,
-                details.presentModes);
-    }
-
-    return details;
-}
-
-static void swapchain_dispose_support_details(SwapchainSupportDetails* details) {
-    if(details->formats) {
-        free(details->formats);
-    }
-    if(details->presentModes) {
-        free(details->presentModes);
-    }
-    memset(details,0,sizeof(SwapchainSupportDetails));
-}
 
 static VkSurfaceFormatKHR _swapchain_choose_format(const VkSurfaceFormatKHR* formats,u32 numFormats) {
     for(u32 i = 0; i < numFormats; i++) {
@@ -110,7 +69,8 @@ static VkExtent2D _swapchain_choose_extent(const VkSurfaceCapabilitiesKHR* capab
 static void swapchain_init(SwapChain* swapchain,const VkPhysicalDevice physicalDevice,
         const VkSurfaceKHR surface,const QueueFamilyIndices indexes,const VkDevice logicalDevice) {
 
-    SwapchainSupportDetails supportDetails = swapchain_get_support_details(physicalDevice,surface);
+    SwapchainSupportDetails supportDetails =
+        physicaldevice_get_swapchain_support_details(physicalDevice,surface);
 
     VkSurfaceFormatKHR surfaceFormat = _swapchain_choose_format(supportDetails.formats,supportDetails.numFormats);
     VkPresentModeKHR presentMode = _swapchain_choose_present_mode(supportDetails.presentModes,supportDetails.numPresentationModes);
@@ -154,7 +114,7 @@ static void swapchain_init(SwapChain* swapchain,const VkPhysicalDevice physicalD
     if(vkCreateSwapchainKHR(logicalDevice,&createInfo,NULL,&swapchain->swapchain) != VK_SUCCESS) {
         ABORT("Failed to create logical device");
     }
-    swapchain_dispose_support_details(&supportDetails);
+    physicaldevice_dispose_swapchain_support_details(&supportDetails);
 
     // now get image handles, implementation is allowed to create more images than we requested
     // and set extent and format
@@ -167,7 +127,9 @@ static void swapchain_init(SwapChain* swapchain,const VkPhysicalDevice physicalD
     // create each image its view
     swapchain->numImages = swapchain->numImages;
     for(u32 i = 0; i < swapchain->numImages; i++) {
-        swapchain->views[i] = imageview_create(swapchain->swapchainImages[i],swapchain->format,logicalDevice);
+        swapchain->views[i] = imageview_create(swapchain->swapchainImages[i],
+                swapchain->format, VK_IMAGE_ASPECT_COLOR_BIT,
+                logicalDevice);
     }
 }
 

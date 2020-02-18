@@ -7,9 +7,16 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../external/stb_image.h"
+#undef STB_IMAGE_IMPLEMENTATION
+
 #include "commandBuffer.h"
 #include "imageview.h"
+#include "physicalDevice.h"
 
+typedef enum TextureType {
+    sampledTexture,
+    depthTexture,
+} TextureType;
 
 typedef struct Texture {
     VkImage         image;
@@ -17,6 +24,7 @@ typedef struct Texture {
     u32             width, height;
     VkImageView     view;
     VkSampler       sampler;
+    TextureType     type;
 } Texture;
 
 static u8*
@@ -60,7 +68,7 @@ _texture_copy_from_buffer(VkDevice device, VkCommandPool pool, VkBuffer buffer,
 
 static void
 _texture_to_layout(VkDevice device, VkCommandPool pool, VkQueue graphicsQue,
-        VkImage image, VkFormat format, VkImageLayout old, VkImageLayout new) {
+        VkImage image, VkImageLayout old, VkImageLayout new) {
 
     VkCommandBuffer cmd = commandbuffer_begin_single_time(device, pool);
 
@@ -113,28 +121,6 @@ _texture_to_layout(VkDevice device, VkCommandPool pool, VkQueue graphicsQue,
     commandbuffer_end_single_time(device, cmd, pool, graphicsQue);
 }
 
-#if 0
-static void
-texture_create_view (Texture* tex, VkDevice device) {
-    VkImageViewCreateInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    info.image = tex->image;
-    info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    info.format = VK_FORMAT_R8G8B8A8_UNORM;
-
-    // Mipmap data
-    info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    info.subresourceRange.baseMipLevel = 0;
-    info.subresourceRange.baseArrayLayer = 0;
-    info.subresourceRange.layerCount = 1;
-    info.subresourceRange.levelCount = 1;
-
-    if(vkCreateImageView(device, &info, NULL, &tex->view /*allocator*/) != VK_SUCCESS) {
-        ABORT("Failed to create image view");
-    }
-}
-#endif
-
 static VkSampler
 _texture_create_sampler(VkDevice device) {
 
@@ -167,25 +153,11 @@ _texture_create_sampler(VkDevice device) {
 }
 
 static Texture
-texture_create(const char* path,VkPhysicalDevice physicalDevice, VkDevice device,
-        VkCommandPool pool, VkQueue graphicsQue) {
+texture_create(VkPhysicalDevice physicalDevice, VkDevice device, VkFormat format, VkImageUsageFlags usage,
+        u32 width, u32 height, TextureType type) {
 
-    Texture ret;
 
-    // Load texture
-    u8* data = _load_texture_data(path, &ret.width, &ret.height);
-    VkDeviceSize size = ret.width * ret.height * 4;
-
-    // create buffer and copy data to image
-    Buffer stagingBuffer = buffer_create(physicalDevice, device, size,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, // usage
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); // memrequiremets
-
-    // Copy pixel data to staging buffer
-    void* stagingDst;
-    vkMapMemory(device, stagingBuffer.bufferMemory, 0, size, 0, &stagingDst);
-    memcpy(stagingDst, data, size);
-    vkUnmapMemory(device, stagingBuffer.bufferMemory);
+    Texture ret  = {.height = height, .width = width, .type = type};
 
     VkImageCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -195,10 +167,10 @@ texture_create(const char* path,VkPhysicalDevice physicalDevice, VkDevice device
     info.extent.depth = 1;
     info.mipLevels = 1;
     info.arrayLayers = 1;
-    info.format = VK_FORMAT_R8G8B8A8_UNORM;
+    info.format = format;
     // Pixels are laid out in an implementation defined order, in this mode we cannot access pixels later
     info.tiling = VK_IMAGE_TILING_OPTIMAL;
-    info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    info.usage = usage;
     // only used by one queue family
     info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     // Multisampling info
@@ -227,9 +199,37 @@ texture_create(const char* path,VkPhysicalDevice physicalDevice, VkDevice device
     // Bind memory to buffer
     vkBindImageMemory(device, ret.image, ret.memory, 0 /* device size memory offset */);
 
+    return ret;
+}
+
+static Texture
+texture_load_and_create(const char* path, VkPhysicalDevice physicalDevice, VkDevice device,
+        VkCommandPool pool, VkQueue graphicsQue) {
+
+    u32 width,height;
+
+    // Load texture
+    u8* data = _load_texture_data(path, &width, &height);
+    VkDeviceSize size = width * height * 4;
+
+    // create buffer and copy data to image
+    Buffer stagingBuffer = buffer_create(physicalDevice, device, size,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, // usage
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); // memrequiremets
+
+    // Copy pixel data to staging buffer
+    void* stagingDst;
+    vkMapMemory(device, stagingBuffer.bufferMemory, 0, size, 0, &stagingDst);
+    memcpy(stagingDst, data, size);
+    vkUnmapMemory(device, stagingBuffer.bufferMemory);
+
+    Texture ret = texture_create(physicalDevice, device,
+            VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            width, height, sampledTexture);
+
+
     // transfer layout
     _texture_to_layout(device, pool, graphicsQue, ret.image,
-            VK_FORMAT_R8G8B8A8_SRGB, //format
             VK_IMAGE_LAYOUT_UNDEFINED, //old layout
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL); //target layout
 
@@ -237,11 +237,10 @@ texture_create(const char* path,VkPhysicalDevice physicalDevice, VkDevice device
 
     // sampling layout
     _texture_to_layout(device, pool, graphicsQue, ret.image,
-            VK_FORMAT_R8G8B8A8_SRGB, //format
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, //old layout
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); //target layout
 
-    ret.view = imageview_create(ret.image, VK_FORMAT_R8G8B8A8_UNORM, device);
+    ret.view = imageview_create(ret.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT,device);
     ret.sampler = _texture_create_sampler(device);
 
     buffer_dispose(&stagingBuffer, device);
@@ -253,15 +252,39 @@ static void
 texture_dispose(Texture* tex, VkDevice device) {
 
     imageview_dispose(tex->view, device);
-    vkDestroySampler(device, tex->sampler, NULL);
+    if(tex->type == sampledTexture) {
+        vkDestroySampler(device, tex->sampler, NULL);
+    }
     vkDestroyImage(device, tex->image, NULL /*allocator*/);
     vkFreeMemory(device, tex->memory, NULL /*allocator*/);
     memset(tex, 0, sizeof *tex);
 }
 
+static u32
+_format_has_stencil(VkFormat format) {
+    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
+static Texture
+texture_depth_create(VkPhysicalDevice physicalDevice, VkDevice device, VkExtent2D swapExtent) {
+
+
+    VkFormat format = physicaldevice_find_depth_format(physicalDevice);
+
+    Texture ret = texture_create(physicalDevice, device,
+            format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            swapExtent.width, swapExtent.height, depthTexture);
+
+    ret.view = imageview_create(ret.image, format, VK_IMAGE_ASPECT_DEPTH_BIT, device);
+
+    return ret;
+}
+
+
 
 // TODO muuta image nimi
 // TODO remove create view
 // TODO move view to shader
+
 
 #endif /* TEXTURE_H */

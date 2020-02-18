@@ -4,6 +4,7 @@
 
 #ifndef LOGICALDEVICE_H
 #define LOGICALDEVICE_H
+
 #include <vulkan/vulkan.h>
 #include "utils.h"
 #include "validationLayers.h"
@@ -49,6 +50,8 @@ typedef struct LogicalDevice {
     };
 
     Texture texture;
+    Texture depth;
+
 } LogicalDevice;
 
 static void _create_semaphores(LogicalDevice* device) {
@@ -96,7 +99,9 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
             surface, physicalDevice->queues,device->device);
     LOG("Swapchain created");
 
-    device->renderPass = renderpass_create(&device->swapchain, device->device);
+    device->renderPass = renderpass_create(&device->swapchain,
+            device->device,
+            physicalDevice->physicalDevice);
     LOG("Renderpass inited");
 
     uniformobject_init(&device->ubo, device->device);
@@ -106,17 +111,21 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
             device->swapchain.extent, device->renderPass, device->ubo.uboLayout);
     LOG("Pipeline created");
 
-    framebuffer_init(&device->frameBuffer, device->device, &device->swapchain, device->renderPass);
-    LOG("Framebuffer created");
-
     device->commandPool = commandpool_create(physicalDevice->queues.graphicsFamily, device->device);
     LOG("Commandpool created");
+
+    device->depth = texture_depth_create(physicalDevice->physicalDevice, device->device, device->swapchain.extent);
+    LOG("Creted depth texture");
+
+    framebuffer_init(&device->frameBuffer, device->device,
+            &device->swapchain, device->renderPass, device->depth.view);
+    LOG("Framebuffer created");
 
     vertexdata_init(&device->vertexData, device->device,
             physicalDevice->physicalDevice, device->commandPool, device->graphicsQueue);
     LOG("Vertex data inited");
 
-    device->texture = texture_create("textures/statue.jpg", physicalDevice->physicalDevice,
+    device->texture = texture_load_and_create("textures/statue.jpg", physicalDevice->physicalDevice,
             device->device, device->commandPool, device->graphicsQueue);
     LOG("Texture loaded and created");
 
@@ -147,18 +156,25 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
 
 static void _swapchain_cleanup(LogicalDevice* device) {
 
+    texture_dispose(&device->depth, device->device);
+    LOG("Disposed depth texture");
+
     framebuffer_dispose(&device->frameBuffer, device->device);
     LOG("Disposed framebuffer");
+
     vkFreeCommandBuffers(device->device, device->commandPool,
             device->commandBuffer.numBuffers, device->commandBuffer.buffers);
     LOG("Freed commandbuffers");
+
     pipeline_dispose(&device->pipeline, device->device);
     LOG("Disposed pipeline");
+
     renderpass_dispose(device->renderPass, device->device);
     LOG("Disposed renderpass");
 
     uniformbuffer_dispose(&device->uniformBuffers, device->swapchain.numImages, device->device);
     LOG("Disposed uniformbuffers");
+
     descriptorpool_dispose(device->descriptorPool, device->device);
     LOG("Disposed descriptorpool");
 
@@ -223,24 +239,33 @@ logicaldevice_resize(LogicalDevice* device,const PhysicalDevice* physicalDevice,
     swapchain_init(&device->swapchain, physicalDevice->physicalDevice,
             surface, physicalDevice->queues,device->device);
     LOG("Swapchain recreated");
-    device->renderPass = renderpass_create(&device->swapchain, device->device);
+
+    device->renderPass = renderpass_create(&device->swapchain,
+            device->device, physicalDevice->physicalDevice);
     LOG("Renderpass recreated");
+
     pipeline_init(&device->pipeline, device->device,
             device->swapchain.extent, device->renderPass, device->ubo.uboLayout);
     LOG("Pipeline recreated");
-    framebuffer_init(&device->frameBuffer, device->device, &device->swapchain, device->renderPass);
+
+    device->depth = texture_depth_create(physicalDevice->physicalDevice, device->device, device->swapchain.extent);
+    LOG("Creted depth texture");
+
+    framebuffer_init(&device->frameBuffer, device->device,
+            &device->swapchain, device->renderPass, device->depth.view);
     LOG("Framebuffer recreated");
+
     device->uniformBuffers = uniformbuffers_create(device->swapchain.numImages,
             device->device, physicalDevice->physicalDevice);
     LOG("Uniformbuffers created");
+
     device->descriptorPool = descriptorpool_create(device->swapchain.numImages, device->device);
+    LOG("descriptorpool created");
 
     device->descriptorSets = descriptorsets_create( device->descriptorPool, device->device,
             device->swapchain.numImages, device->ubo.uboLayout, device->uniformBuffers, &device->texture);
     LOG("descriptorsets created");
 
-
-    LOG("descriptorpool created");
     commandbuffers_init(&device->commandBuffer, &device->frameBuffer, device->device,
             device->renderPass, device->swapchain.extent, &device->pipeline,
             device->commandPool, &device->vertexData, device->descriptorSets);
