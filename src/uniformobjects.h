@@ -20,6 +20,7 @@ typedef struct UniformObject {
     } data;
 } UniformObject;
 
+const float FOV = 90.f;
 static void
 uniformobject_init(UniformObject *object, VkDevice device) {
 
@@ -60,7 +61,6 @@ uniformobject_init(UniformObject *object, VkDevice device) {
     identify_mat4(&object->data.view);
     identify_mat4(&object->data.projection);
 
-    const float FOV = 90;
     //TODO g_ prefix
     vec3 eye = {2.f,3.f,2.f};
     vec3 target = {0.f,0.f,0.f};
@@ -68,7 +68,9 @@ uniformobject_init(UniformObject *object, VkDevice device) {
     perspective(&object->data.projection, FOV * deg2rad,
             (float)SCREENWIDTH / (float)SCREENHEIGHT, 0.1f, 10.f);
 
-    //object->data.projection.mat[1][1] *= -1;
+    object->data.projection.mat[1][1] *= -1;
+
+
 }
 
 static void
@@ -109,6 +111,14 @@ uniformbuffer_dispose(Buffer** buffers, u32 numImages, VkDevice device) {
 static void
 uniformbuffer_update(Buffer* buffer, UniformObject* object, VkDevice device) {
 
+
+    int w,h;
+    glfwGetFramebufferSize(g_window,&w,&h);
+    perspective(&object->data.projection, FOV * deg2rad,
+            (float)w / (float)h, 0.1f, 10.f);
+
+    object->data.projection.mat[1][1] *= -1;
+
     double time = glfwGetTime();
 #if 0
     float y =  time * 0.2f;
@@ -117,21 +127,49 @@ uniformbuffer_update(Buffer* buffer, UniformObject* object, VkDevice device) {
     }
     vec3 eye = {2.f,-3.f + y,2.f};
 #else
-    vec3 eye = {2.f, 0 ,0.f};
+    vec3 eye = {0.f, 1.f, 2.f};
 #endif
+
+
     vec3 target = {0.f,0.f,0.f};
     create_lookat_mat4(&object->data.view, eye, target, world_up);
 
-
     //rotate the mesh
-    vec3 axis = {0.f, 1.f, 0};
-    normalize_inside_vec3(&axis);
-    const quat rotation = quat_from_axis(axis, time * 0.1);
-    mat4_from_quat(&object->data.model, rotation);
+
+    //vec3 axis = {0.f, 0.f, 1.f};
+    //normalize_inside_vec3(&axis);
+    //const quat rotation = quat_from_axis(axis, time * 0.1);
+
+    identify_mat4(&object->data.model);
+    rotate_mat4_Y(&object->data.model, time * 0.1f);
+    rotate_mat4_X(&object->data.model, -90.f * deg2rad);
+
+    //mat4_from_quat(&object->data.model, rotation);
+
     void *data;
     vkMapMemory(device, buffer->bufferMemory, 0, MEMBER_SIZE(UniformObject, data), 0, &data);
     memcpy(data, &object->data, MEMBER_SIZE(UniformObject, data));
     vkUnmapMemory(device, buffer->bufferMemory);
+#if 0
+    mat4 model,view,projection;
+    identify_mat4(&model);
+    identify_mat4(&view);
+    identify_mat4(&projection);
+
+    const float FOV = 90;
+    //TODO g_ prefix
+    eye = (vec3){0.f,0.f,2.f};
+    target = (vec3){0.f,0.f,0.f};
+    create_lookat_mat4(&view, eye, target, world_up);
+    perspective(&projection, FOV * deg2rad,
+            (float)SCREENWIDTH / (float)SCREENHEIGHT, 0.05f, 10.f);
+
+    vec4 test = {0, 0, 1.9f, 1.f};
+    test = mat4_mult_vec4(&model, test);
+    test = mat4_mult_vec4(&view, test);
+    test = mat4_mult_vec4(&projection, test);
+    printf("%f %f %f %f\n", test.x,test.y,test.z, test.w);
+#endif
 }
 
 static VkDescriptorPool

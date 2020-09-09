@@ -7,8 +7,8 @@
 #include <vulkan/vulkan.h>
 #include "utils.h"
 
-static VkImageView imageview_create(const VkImage image, VkFormat format, VkImageAspectFlags aspectFlag,
-        const VkDevice device) {
+static VkImageView imageview_create(const VkImage image, u32 miplevels, VkFormat format,
+        VkImageAspectFlags aspectFlag, const VkDevice device) {
     VkImageView ret = 0;
 
     VkImageViewCreateInfo createInfo = {};
@@ -26,7 +26,7 @@ static VkImageView imageview_create(const VkImage image, VkFormat format, VkImag
 
     createInfo.subresourceRange.aspectMask = aspectFlag;
     createInfo.subresourceRange.baseMipLevel = 0;
-    createInfo.subresourceRange.levelCount = 1;
+    createInfo.subresourceRange.levelCount = miplevels;
     createInfo.subresourceRange.baseArrayLayer = 0;
     createInfo.subresourceRange.layerCount = 1;
 

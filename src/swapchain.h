@@ -27,7 +27,7 @@ typedef struct SwapChain {
 static VkSurfaceFormatKHR _swapchain_choose_format(const VkSurfaceFormatKHR* formats,u32 numFormats) {
     for(u32 i = 0; i < numFormats; i++) {
         // select format if it has b,r,g and a channels and is SRGB color
-        if(formats[i].format == VK_FORMAT_B8G8R8A8_UNORM &&
+        if(formats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
                 formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             return formats[i];
         }
@@ -127,7 +127,7 @@ static void swapchain_init(SwapChain* swapchain,const VkPhysicalDevice physicalD
     // create each image its view
     swapchain->numImages = swapchain->numImages;
     for(u32 i = 0; i < swapchain->numImages; i++) {
-        swapchain->views[i] = imageview_create(swapchain->swapchainImages[i],
+        swapchain->views[i] = imageview_create(swapchain->swapchainImages[i], 1,
                 swapchain->format, VK_IMAGE_ASPECT_COLOR_BIT,
                 logicalDevice);
     }

@@ -126,7 +126,7 @@ logicaldevice_init(const PhysicalDevice* physicalDevice, LogicalDevice* device, 
     LOG("Vertex data inited");
 
     device->texture = texture_load_and_create("textures/chalet.jpg", physicalDevice->physicalDevice,
-            device->device, device->commandPool, device->graphicsQueue);
+            device->device, device->commandPool, device->graphicsQueue, TextureSample | TextureMipmap);
     LOG("Texture loaded and created");
 
     device->uniformBuffers = uniformbuffers_create(device->swapchain.numImages,

@@ -16,8 +16,7 @@ static void main_loop(LogicalDevice* device, VulkanContext* context);
 static void draw_frame(LogicalDevice* device, VulkanContext* context);
 
 i32
-main(const int argc,char **argv)
-{
+main(const int argc,char **argv) {
     (void)argc;(void)argv;
     VulkanContext context = {};
     LogicalDevice logicalDevice = {};
